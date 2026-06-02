@@ -1,0 +1,7 @@
+# AAAI-IRT research site — temporary public hosting on GitHub Pages
+# (waiting for GitHub Education / Pro to enable private Pages hosting).
+# Block all crawlers so the site doesn't appear in Google/Bing/Naver/DuckDuckGo
+# search results. Direct URL access still works.
+
+User-agent: *
+Disallow: /
