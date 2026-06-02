@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Literature Review (연구 설계용)</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>(function(){try{var t=localStorage.getItem('theme')||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+
+<div class="review-wrap">
+
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:0 0 1rem;">
+    <a href="../plan.html" style="color:var(--accent);text-decoration:none;font-size:.9rem;">← 연구 계획</a>
+    <button class="theme-toggle" type="button" style="margin-top:0;">☾ 다크 모드</button>
+  </div>
+
+  <header class="hero">
+    <div class="kicker">연구 설계용</div>
+    <h1>Literature Review</h1>
+    <p class="one-liner">우리 연구를 설계·수행하기 위해 <span class="mark">끝까지 검토해 둘 논문</span>을 다섯 부분으로 모았다. 섹션을 누르면 논문별 검토 카드(연구 배경·무엇을 했나·방법론·결과·한계·본 연구와의 관계)로 들어간다.</p>
+  </header>
+
+  <p class="lead" style="max-width:none;">섹션 구성은 우리 방법을 그대로 따른다. A에서 측정 모델을 세우고, B에서 그 모델이 풀려는 문제(충돌률의 SUT 의존성)를 보이며, C·D·E에서 우리가 더하는 세 구조(난이도·회피가능성·반응성)의 근거를 모은다.</p>
+
+  <div class="sec-grid">
+
+    <a class="sec-card" href="sec-a.html">
+      <h3><span class="sc-no">A.</span> 측정 모델: IRT로 난이도와 강건성을 함께 추정</h3>
+      <p class="sc-en">From IRT to our SUT-invariant model</p>
+      <p class="sc-status">검토 완료 (7편)</p>
+      <ul class="sc-points">
+        <li>IRT는 시험처럼 문항 난이도와 응시자 실력을 한 번에 추정한다. 우리는 시나리오 난이도·AV 강건성에 대응시킨다.</li>
+        <li>표본에 의존하지 않는다는 specific objectivity가 곧 SUT-불변성이다.</li>
+        <li>선행은 모두 정적 문항이라, 우리는 반응형 closed-loop로 확장한다.</li>
+      </ul>
+    </a>
+
+    <a class="sec-card" href="sec-b.html">
+      <h3><span class="sc-no">B.</span> 충돌률은 어떤 AV로 측정했느냐에 흔들린다</h3>
+      <p class="sc-en">Evidence of SUT-dependence &amp; experiment cues</p>
+      <p class="sc-status">검토 완료 (5편)</p>
+      <ul class="sc-points">
+        <li>충돌률·위험도가 측정에 쓴 AV에 따라 순위까지 뒤집힌다는 직접 증거.</li>
+        <li>LD-Scene(ego 교체 40.75→62.88%), Shen(유형별 순위 역전), Qiu·Ponn·Hauer.</li>
+        <li>각 실험 설정이 우리 "여러 AV × 여러 시나리오" 격자의 단서가 된다.</li>
+      </ul>
+    </a>
+
+    <a class="sec-card" href="sec-c.html">
+      <h3><span class="sc-no">C.</span> 시나리오 난이도를 매기려던 기존 시도</h3>
+      <p class="sc-en">Difficulty metrics as covariates &amp; alternatives</p>
+      <p class="sc-status">검토 완료 (5편)</p>
+      <ul class="sc-points">
+        <li>난이도를 AV와 무관하게 시나리오 쪽 성질로 매기려던 선행들.</li>
+        <li>최적제어(Tulpule)·TTR(Wagner)·MPC(Junietz)·복잡도(Yu)·충돌근접도(Kurian).</li>
+        <li>우리가 넘어서는 대안이자, 설명적 IRT의 난이도 공변량 후보.</li>
+      </ul>
+    </a>
+
+    <a class="sec-card" href="sec-d.html">
+      <h3><span class="sc-no">D.</span> 회피가능성과 귀책: 피할 수 없던 충돌 가려내기</h3>
+      <p class="sc-en">Avoidability &amp; fault → unavoidable floor u</p>
+      <p class="sc-status">검토 완료 (8편)</p>
+      <ul class="sc-points">
+        <li>충돌엔 ego 잘못과 무과실이 섞여 있다(실데이터에서 약 70%가 무과실).</li>
+        <li>RSS·UN R157·예견예방(de Gelder)·대안설정(Calò)·학습귀책(CrashML)으로 라벨링.</li>
+        <li>그 라벨로 하한 <i>u</i>를 정해 강건성에서 떼어낸다.</li>
+      </ul>
+    </a>
+
+    <a class="sec-card" href="sec-e.html">
+      <h3><span class="sc-no">E.</span> AV에 반응하고 위험도를 높이는 생성 기법</h3>
+      <p class="sc-en">Reactivity &amp; severity-conditioning in generators</p>
+      <p class="sc-status">검토 완료 (5편)</p>
+      <ul class="sc-points">
+        <li>적대 시나리오가 AV 행동에 반응하고(reactivity), 위험도를 단계로 높일 수 있다(severity).</li>
+        <li>closed-loop 반응 생성(VCDI), 공격성 조절(Wang-Ma-Lai), FREA·CaDRE 등.</li>
+        <li>우리 두 구조가 임의 가정이 아니라 분야 현실임을 보인다.</li>
+      </ul>
+    </a>
+
+  </div>
+
+</div>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>

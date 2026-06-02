@@ -1,0 +1,55 @@
+# 논문 다운로드 manifest  (filename <TAB> method <TAB> identifier)
+# method: elsevier(DOI) | wiley(DOI) | arxiv(id) | url(직접 URL)
+# '#' 줄은 무시. 새 논문은 한 줄 추가하면 됨.
+#
+# ---- Elsevier (KAIST API) ----
+# 주의: 텍스트의 신뢰 소스는 전문 XML(_xml/<name>.xml,.txt). 스크립트가 자동 저장.
+#       PDF는 읽기용이며 제목에 따라 이미지형(TRC/IST)이거나 1쪽 미리보기(AAP/TR-A)일 수 있음.
+Peng2026_LD-Scene.pdf	elsevier	10.1016/j.trc.2026.105694
+Shen2025_automation_levels.pdf	elsevier	10.1016/j.aap.2025.108273
+Qiu2026_scenario_difficulty.pdf	elsevier	10.1016/j.trc.2026.105737
+Liao2025_ADS_testing_survey.pdf	elsevier	10.1016/j.infsof.2025.107859
+Fan2026_PMCT.pdf	elsevier	10.1016/j.trc.2026.105674
+Kalra2016_driving_to_safety.pdf	elsevier	10.1016/j.tra.2016.09.010
+Wang2021_CAV_SSM_review.pdf	elsevier	10.1016/j.aap.2021.106157
+MartinezPlumed2019_IRT_in_AI.pdf	elsevier	10.1016/j.artint.2018.09.004
+# ---- 심층 리뷰용 추가 (leapspace 2026-06-01: 난이도/criticality + 회피가능성/귀책) ----
+Yu2021_complexity.pdf	elsevier	10.1016/j.trc.2021.103051
+Liu2021_RSS_cutin.pdf	elsevier	10.1016/j.trc.2021.103037
+Xu2021_RSS_carfollowing.pdf	elsevier	10.1016/j.trc.2021.102988
+Mattas2022_driver_models_R157.pdf	elsevier	10.1016/j.aap.2022.106743
+deGelder2023_foreseeable_preventable.pdf	elsevier	10.1016/j.ssci.2023.106233
+#
+# ---- arXiv / open access ----
+Menzel2018_scenarios.pdf	arxiv	1801.08598
+Bronstein2023_zeroshot_curricula.pdf	arxiv	2212.01375
+Zhou2025_lost_in_benchmarks.pdf	arxiv	2505.15055
+AgentPsychometrics2026.pdf	arxiv	2604.00594
+Ding2023_survey.pdf	arxiv	2202.02215
+Riedmaier2020_survey.pdf	url	https://mediatum.ub.tum.de/doc/1595075/1595075.pdf
+Feng2021_NADE.pdf	url	https://www.nature.com/articles/s41467-021-21007-8.pdf
+Yang2025_scenario_difficulty.pdf	url	https://spj.science.org/doi/pdf/10.34133/research.0575
+RSS_ShalevShwartz2017.pdf	arxiv	1708.06374
+TIAV_Zhao2024_VUT_centered.pdf	arxiv	2406.02860
+Kandanaarachchi2023_algorithm_portfolio.pdf	arxiv	2307.15850
+SongFlach2021_efficient_benchmarks.pdf	url	https://www.turing.ac.uk/sites/default/files/2021-07/efficient_and_robust_paper.pdf
+# 심층 리뷰 §E 반응형 생성기 (Claude 자체 arXiv 검색, 2026-06-01)
+FREA2024_feasibility.pdf	arxiv	2406.02983
+CaDRE2024_controllable.pdf	arxiv	2403.13208
+#
+# ---- 수동 제공 완료(API 불가였으나 사용자가 PDF로 제공, 규칙명으로 보관) ----
+# Ponn2020_EVER.pdf            IEEE EVER 2020      doi:10.1109/EVER48776.2020.9242539
+# Hauer2020_reusing.pdf        IEEE IV 2020        doi:10.1109/IV47402.2020.9304678
+# Khan2026_RSS.pdf             Springer LNCS       doi:10.1007/978-3-032-12089-2_31
+# WangMaLai2026_difficulty.pdf IEEE OJ-ITS (OA)    doi:10.1109/OJITS.2026.3692749
+# Tafidis2023_SSM_review.pdf   Taylor&Francis      doi:10.1080/15389588.2023.2176711
+# MartinezPlumed2020_dual_indicators.pdf  IEEE T-Games  doi:10.1109/TG.2018.2883773
+# Beringhoff2025_robust.pdf    IEEE IAVVC 2025     doi:10.1109/IAVVC61942.2025.11219575
+# ---- 심층 리뷰용 수동 제공(2026-06-01, 사용자 직접 다운로드. API 불가 IEEE/SAE/thesis) ----
+# Tulpule2022_criticality_optimalcontrol.pdf  Ohio State 석사논문(Chen, adv. Tulpule) = SAE 2022-01-0070 바탕. 최적제어 기반 criticality
+# Junietz2018_MPC_criticality.pdf             IEEE ITSC 2018  10.1109/ITSC.2018.8569326  MPC 궤적최적화 난이도
+# Wagner2018_TTR_risk.pdf                      IEEE IV 2018    10.1109/IVS.2018.8500624   Time-to-React 위험도(0~1)
+# Kurian2025_collision_proximity.pdf           IEEE IV 2025    10.1109/IV64158.2025.11097344  충돌근접도 criticality(ADS궤적 의존=부분적)
+# Feng2022_ATSLG_adaptive.pdf                  IEEE T-ITS 23(2) 2022  10.1109/TITS.2020.2972208  적응형 TSLG = surrogate↔CAV 성능차(SUT의존) 정면
+# Calo2020_avoidable_collisions.pdf            IEEE ICST 2020  10.1109/ICST46399.2020.00045  회피가능 충돌 = 대안 ADS설정이 회피하면 avoidable
+# Rwejuna2025_CrashML.pdf                      Ohio Dominican 학부우등프로젝트 = SAE 2026-01-0160 원본. CrashML 귀책 96%

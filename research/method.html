@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>방법 형식화 (Method) — AAAI SUT-불변 측정</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">AAAI · Main Track</div>
+      <h1>AV 적대 평가의<br>SUT-불변 측정</h1>
+      <div class="sub">방법 형식화 (Measurement Model)</div>
+    </div>
+
+    <nav class="site-nav">
+      <a href="index.html"><span class="ic">◆</span> 연구 개요</a>
+      <a href="method.html" class="active"><span class="ic">∑</span> 방법 형식화 (Method)</a>
+      <a href="roadmap.html"><span class="ic">▶</span> 수행 로드맵 (Roadmap)</a>
+      <a href="decisions.html"><span class="ic">✦</span> 결정 로그 (Decisions)</a>
+      <a href="d-study.html"><span class="ic">◎</span> D-study 결과</a>
+      <a href="review/index.html"><span class="ic">▤</span> Literature Review</a>
+      <a href="questions-log.html"><span class="ic">✎</span> 질의 로그 · PDF 요청</a>
+    </nav>
+
+    <div class="toc-label">이 페이지 목차</div>
+    <ul class="toc">
+      <li><a href="#big">큰 그림 (수식 없이)</a></li>
+      <li><a href="#notation">표기 (notation)</a></li>
+      <li><a href="#data">0 · 응답 데이터 (교차설계)</a></li>
+      <li><a href="#s1">1 · 기본형 (Rasch)</a></li>
+      <li><a href="#s2">2 · 변별력 (2PL)</a></li>
+      <li><a href="#s3">3 · 반응성 (reactivity)</a></li>
+      <li><a href="#s4">4 · severity 조건화</a></li>
+      <li><a href="#s5">5 · avoidability 가중</a></li>
+      <li><a href="#s6">6 · 전체 모델</a></li>
+      <li><a href="#s7">7 · SUT-불변성</a></li>
+      <li><a href="#s8">8 · 추정</a></li>
+      <li><a href="#s9">9 · decision study</a></li>
+      <li><a href="#summary">한눈에 · RQ 매핑</a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+
+    <header class="hero">
+      <div class="kicker">Method · Measurement Model</div>
+      <h1>측정 모델 형식화</h1>
+      <p class="one-liner">이 페이지는 수식이 나오지만, <b>모든 수식 옆에 "쉬운 말" 박스</b>를 붙였습니다. 수식을 건너뛰고 초록 박스만 읽어도 전체 논리가 이어지도록 썼습니다. 시험 비유(문항=시나리오, 수험생=AV, 오답=충돌)를 끝까지 사용합니다.</p>
+    </header>
+
+    <!-- BIG PICTURE -->
+    <h2 id="big">큰 그림 — 수식 없이 먼저</h2>
+    <div class="callout callout--plain">
+      <div class="c-title">한 문단 요약</div>
+      <p>여러 AV에게 여러 시나리오를 풀게 하면 <b>"누가 무엇에서 충돌했나"</b> 라는 0/1 표가 나온다. 시험 채점과 똑같이, 이 표 하나에서 <b>시나리오의 진짜 난이도</b>와 <b>AV의 진짜 강건성</b>을 <b>동시에</b> 추정할 수 있다. 핵심은 — 시험 이론(IRT)에서는 이렇게 추정한 난이도가 <b>"어떤 수험생들로 쟀느냐"에 흔들리지 않는다</b>(specific objectivity). 이 성질이 바로 우리가 원하는 SUT-불변성이다. 다만 주행에는 시험에 없는 세 가지가 있어서(시나리오가 반응함 · 난이도를 손잡이로 연속 조절함 · 충돌엔 회피불가가 섞임) 시험용 IRT를 그대로 못 쓰고, 그 셋을 모델에 넣는 것이 이 논문의 새로움이다.</p>
+    </div>
+    <p>아래는 이 큰 그림을 <b>한 겹씩 쌓아</b> 수식으로 만든 것이다. 각 단계는 "시험 IRT에서 가져온 것"과 "주행 때문에 새로 더한 것"을 구분한다.</p>
+
+    <!-- NOTATION -->
+    <h2 id="notation">표기 (notation)</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>기호</th><th>뜻</th><th>시험 비유</th></tr></thead>
+        <tbody>
+          <tr><td><i>π</i> ∈ Π</td><td>AV 정책 (평가 대상, SUT)</td><td>수험생</td></tr>
+          <tr><td><i>θ<sub>π</sub></i> ∈ ℝ</td><td>AV의 잠재 <b>강건성</b> (클수록 강건)</td><td>수험생 실력</td></tr>
+          <tr><td><i>G</i> ∈ 𝒢</td><td>적대 시나리오 <b>생성기</b></td><td>출제자 / 문제 유형</td></tr>
+          <tr><td><i>c</i> ∈ [0, <i>c</i><sub>max</sub>]</td><td><b>severity</b> 손잡이 (난이도 다이얼)</td><td>문제의 난이도 설정</td></tr>
+          <tr><td><i>s</i> = (<i>G</i>, <i>c</i>)</td><td>시나리오 <b>item</b> (한 문항)</td><td>한 문항</td></tr>
+          <tr><td><i>Y<sub>π,s</sub></i> ∈ {0,1}</td><td>충돌 결과 (1 = 충돌 = 오답)</td><td>채점 (오답 여부)</td></tr>
+          <tr><td><i>b</i>(<i>G,c</i>)</td><td>item <b>난이도</b></td><td>문항 난이도</td></tr>
+          <tr><td><i>a<sub>G</sub></i></td><td><b>변별력</b> (강·약 AV를 가르는 날카로움)</td><td>문항 변별도</td></tr>
+          <tr><td><i>u</i>(<i>G,c</i>)</td><td><b>회피불가 충돌 바닥</b> (누구도 못 피하는 몫)</td><td>(시험엔 없음)</td></tr>
+          <tr><td><i>σ</i>(<i>x</i>)</td><td>로지스틱 함수 1∕(1+<i>e</i><sup>−x</sup>)</td><td>S자 곡선</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- STAGE 0 -->
+    <div class="stagebox" id="data">
+      <div class="sb-head"><span class="sb-num">0</span> 응답 데이터 — 교차설계 (crossed Π × S)</div>
+      <div class="sb-body">
+        <p>모든 AV가 모든(또는 많은) 시나리오를 풀게 해서 0/1 표를 얻는다. 행=AV, 열=시나리오 item. 이 <b>교차(crossed)</b> 구조가 난이도와 강건성을 같은 척도에서 동시에 식별하는 열쇠다.</p>
+        <div class="table-wrap">
+          <table class="xtab">
+            <thead><tr><th>AV \ item</th><th><i>G</i>₁,c=낮음</th><th><i>G</i>₁,c=높음</th><th><i>G</i>₂,c=낮음</th><th><i>G</i>₂,c=높음</th><th>→ <i>θ</i> 추정</th></tr></thead>
+            <tbody>
+              <tr><td class="av">π₁ (강건)</td><td class="cell c0">0</td><td class="cell c0">0</td><td class="cell c0">0</td><td class="cell c1">1</td><td class="cell">높음 ↑</td></tr>
+              <tr><td class="av">π₂ (중간)</td><td class="cell c0">0</td><td class="cell c1">1</td><td class="cell c0">0</td><td class="cell c1">1</td><td class="cell">중간</td></tr>
+              <tr><td class="av">π₃ (약함)</td><td class="cell c0">0</td><td class="cell c1">1</td><td class="cell c1">1</td><td class="cell c1">1</td><td class="cell">낮음 ↓</td></tr>
+              <tr><td class="av" style="color:var(--ink-faint)">→ <i>b</i> 추정</td><td class="cell">쉬움</td><td class="cell">어려움</td><td class="cell">중간</td><td class="cell">매우 어려움</td><td class="cell">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>시험 채점표와 똑같다. 어떤 문항을 거의 모두가 틀리면 그 문항이 어려운 것이고(열), 어떤 수험생이 어려운 문항까지 맞히면 그 수험생이 잘하는 것이다(행). 행·열을 <b>동시에</b> 풀면 "문항 난이도"와 "수험생 실력"이 같이 나온다. 단일 AV 충돌률은 이 표의 <b>열 평균 하나</b>일 뿐이라, 어떤 행(AV)들로 평균 냈냐에 흔들린다.</p></div>
+      </div>
+    </div>
+
+    <!-- STAGE 1 -->
+    <div class="stagebox" id="s1">
+      <div class="sb-head"><span class="sb-num">1</span> 기본형 — Rasch 모델 <span class="sb-maps">시험 IRT에서 가져옴</span></div>
+      <div class="sb-body">
+        <div class="eq"><span class="lbl">(1)</span><i>P</i>(<i>Y<sub>π,s</sub></i> = 1) <span class="op">=</span> <i>σ</i>( <i>b</i>(<i>G,c</i>) <span class="op">−</span> <i>θ<sub>π</sub></i> )</div>
+        <p class="where">충돌 확률 = (난이도 − 강건성)의 S자 함수.</p>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>충돌할 확률은 <b>"시나리오가 얼마나 어려운가(<i>b</i>)"에서 "AV가 얼마나 강건한가(<i>θ</i>)"를 뺀 값</b>으로 정해진다. 시나리오가 AV 실력보다 어려우면(<i>b</i> &gt; <i>θ</i>) 충돌 확률이 50%를 넘고, 반대면 50% 아래. 딱 시험에서 "문제가 내 실력보다 어려우면 틀릴 확률이 높다"와 같다.</p></div>
+      </div>
+    </div>
+
+    <!-- STAGE 2 -->
+    <div class="stagebox" id="s2">
+      <div class="sb-head"><span class="sb-num">2</span> 변별력 — 2PL <span class="sb-maps">시험 IRT · Shen 역전 일부 흡수</span></div>
+      <div class="sb-body">
+        <div class="eq"><span class="lbl">(2)</span><i>P</i>(<i>Y<sub>π,s</sub></i> = 1) <span class="op">=</span> <i>σ</i>( <i>a<sub>G</sub></i> <span class="op">·</span> ( <i>b</i>(<i>G,c</i>) <span class="op">−</span> <i>θ<sub>π</sub></i> ) )</div>
+        <p class="where"><i>a<sub>G</sub></i> &gt; 0 : 생성기 <i>G</i>의 변별력(곡선의 기울기).</p>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p><i>a<sub>G</sub></i>는 그 시나리오가 <b>강한 AV와 약한 AV를 얼마나 날카롭게 갈라내는가</b>이다. 변별력이 큰 시나리오는 실력 차이를 분명히 드러내고(강한 AV는 통과·약한 AV는 충돌), 작은 시나리오는 누구에게나 비슷하다. Shen에서 본 일부 순위 흔들림은 시나리오마다 이 기울기가 달라서 생기는 것으로, 2PL이 일부 흡수한다(큰 체계적 역전은 다차원 → 7·9단계에서 다룸).</p></div>
+      </div>
+    </div>
+
+    <!-- STAGE 3 -->
+    <div class="stagebox" id="s3">
+      <div class="sb-head"><span class="sb-num">3</span> 반응성 (reactivity) <span class="sb-maps">★ 주행 고유 · Hauer 2020</span></div>
+      <div class="sb-body">
+        <p>시험 문항은 가만히 있지만, 적대 생성기는 AV 행동에 <b>반응</b>한다(closed-loop). 그래서 한 번 실현된 구체적 궤적 <i>τ</i> 는 AV에 따라 매번 달라진다 — 이 궤적에 난이도를 붙이면 곧바로 SUT에 오염된다(이것이 Hauer가 "구체 시나리오 재사용은 나쁜 생각"이라 한 이유).</p>
+        <div class="eq"><span class="lbl">(3a)</span><i>τ</i> <span class="op">~</span> <i>P</i>( <i>τ</i> | <i>G, c, π</i> ) <span class="op">,</span> &nbsp; <i>Y<sub>π,s</sub></i> <span class="op">=</span> collision(<i>τ</i>)</div>
+        <p class="where">난이도 <i>b</i>(<i>G,c</i>)·<i>u</i>(<i>G,c</i>)는 <b>실현 궤적이 아니라 생성기(<i>G,c</i>) 자체</b>의 속성으로 정의하고, closed-loop 상호작용은 적분해 없앤다.</p>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>우리는 난이도를 <b>"이미 벌어진 한 장면"이 아니라 "그 장면을 만들어내는 출제자(생성기)의 성향"</b>에 붙인다. 같은 출제자도 수험생마다 조금씩 다른 문제를 내지만, <b>출제자의 난이도 성향 자체</b>는 일정하다. 그래서 "이 구체적 사고 장면이 얼마나 위험했나"가 아니라 "이 생성기를 severity c로 돌리면 평균적으로 얼마나 어려운가"를 잰다. 시험 IRT는 이 구분이 필요 없었지만(문항 고정), 주행에선 이게 SUT-불변성의 전제다.</p></div>
+      </div>
+    </div>
+
+    <!-- STAGE 4 -->
+    <div class="stagebox" id="s4">
+      <div class="sb-head"><span class="sb-num">4</span> severity 조건화 <span class="sb-maps">★ 주행 고유 · 무게중심 · Wang-Ma-Lai 2026</span></div>
+      <div class="sb-body">
+        <p>같은 생성기로 severity <i>c</i>를 연속으로 돌릴 수 있다. 그러면 난이도는 하나의 숫자가 아니라 <i>c</i>에 따라 오르는 <b>곡선</b>이다.</p>
+        <div class="eq"><span class="lbl">(4)</span><i>b</i>(<i>G,c</i>) <span class="op">=</span> <i>β<sub>G</sub></i> <span class="op">+</span> <i>γ<sub>G</sub></i> <span class="op">·</span> <i>c</i> <span class="op">,</span> &nbsp; <i>γ<sub>G</sub></i> <span class="op">&gt;</span> 0</div>
+        <p class="where"><i>β<sub>G</sub></i> : 생성기 기본 난이도, <i>γ<sub>G</sub></i> : severity 한 칸이 난이도를 올리는 정도. (필요시 <i>c</i> 대신 단조함수 <i>h</i>(<i>c</i>).)</p>
+        <p>각 AV의 강건성을 <b>"몇 단계 severity까지 버티는가"</b>로 요약할 수 있다. 충돌 확률이 50%가 되는 severity:</p>
+        <div class="eq"><span class="lbl">(4′)</span><i>c</i><sub>50</sub>(<i>π,G</i>) <span class="op">=</span> ( <i>θ<sub>π</sub></i> <span class="op">−</span> <i>β<sub>G</sub></i> ) <span class="op">∕</span> <i>γ<sub>G</sub></i></div>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>난이도 손잡이를 0부터 천천히 올리면, 약한 AV는 일찍 무너지고 강한 AV는 한참 버틴다. 각 AV를 <b>"몇 단계까지 견뎠는가(<i>c</i><sub>50</sub>)"</b> 한 숫자로 요약하는 것 — 독성 실험의 "치사량 50%(LD50)"와 같은 발상이다. 하나의 난이도 값보다 훨씬 정보가 많고, "이 AV는 severity 3까지는 안전, 그 위는 위험"처럼 해석된다. Wang-Ma-Lai(2026)의 aggressiveness 손잡이가 이 <i>c</i>의 실제 예다.</p></div>
+      </div>
+    </div>
+
+    <!-- STAGE 5 -->
+    <div class="stagebox" id="s5">
+      <div class="sb-head"><span class="sb-num">5</span> avoidability 가중 <span class="sb-maps">★ 주행 고유 · Ponn·LD-Scene§4.9·Khan(RSS)</span></div>
+      <div class="sb-body">
+        <p>충돌엔 <b>피할 수 있었는데 못 피한 것</b>(시스템 결함)과 <b>누구도 못 피하는 것</b>(예: 정지한 ego를 뒤차가 들이받음)이 섞여 있다. 후자는 아무리 강건한 AV라도 일어나므로, 강건성 <i>θ</i> 추정에서 빼야 한다. 이를 <b>회피불가 바닥</b> <i>u</i>(<i>G,c</i>)로 모델에 넣는다.</p>
+        <div class="eq"><span class="lbl">(5)</span><i>P</i>(<i>Y<sub>π,s</sub></i>=1) <span class="op">=</span> <i>u</i>(<i>G,c</i>) <span class="op">+</span> ( 1 <span class="op">−</span> <i>u</i>(<i>G,c</i>) ) <span class="op">·</span> <i>σ</i>( <i>a<sub>G</sub></i>( <i>b</i>(<i>G,c</i>) <span class="op">−</span> <i>θ<sub>π</sub></i> ) )</div>
+        <p class="where">완벽한 AV(<i>θ</i>→∞)도 충돌 확률이 <i>u</i>로 남는다. 오직 (1−<i>u</i>)<i>σ</i>(·), 즉 <b>회피가능 충돌</b>만 <i>θ<sub>π</sub></i>에 정보를 준다. <i>u</i>는 RSS·귀책 라벨(Khan, ego-liable)로 추정·고정 가능.</p>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>시험으로 치면 "<b>아무도 풀 수 없게 잘못 출제된 문항</b>"이다. 그런 문항을 틀렸다고 수험생 실력을 깎으면 불공정하다. 그래서 충돌 확률을 두 조각으로 나눈다 — (i) 누구도 못 피하는 바닥 <i>u</i>, (ii) 실력에 따라 달라지는 나머지. AV 강건성은 (ii)에서만 읽는다. <b>Ponn은 이미 무과실 추돌을 평가에서 빼버렸고, LD-Scene §4.9도 ego 무과실 충돌을 인정하며 귀책 분석을 향후 과제로 꼽았다</b> — 우리는 그걸 모델 안의 <i>u</i>로 정식화한다. 회피가능성 판정은 RSS 규칙(Khan 2026)으로 줄 수 있다.</p></div>
+        <p class="note-inline">참고: (5)는 시험 IRT의 3PL "추측 모수"와 거울 구조다(거기선 정답 쪽 하한, 여기선 충돌=오답 쪽 하한). 외부 RSS 라벨로 <i>u</i>를 고정하면 식별이 쉬워진다(데이터만으로는 약하게 식별될 수 있음).</p>
+      </div>
+    </div>
+
+    <!-- STAGE 6 -->
+    <div class="stagebox" id="s6">
+      <div class="sb-head"><span class="sb-num">6</span> 전체 모델 (한 줄로)</div>
+      <div class="sb-body">
+        <div class="eq" style="font-size:1.08rem;"><span class="lbl">(6)</span><i>P</i>(<i>Y<sub>π,s</sub></i>=1) <span class="op">=</span> <i>u</i>(<i>G,c</i>) <span class="op">+</span> (1<span class="op">−</span><i>u</i>(<i>G,c</i>)) <i>σ</i>( <i>a<sub>G</sub></i>( <i>β<sub>G</sub></i> <span class="op">+</span> <i>γ<sub>G</sub>c</i> <span class="op">−</span> <i>θ<sub>π</sub></i> ) )</div>
+        <p class="where"><i>θ<sub>π</sub></i> ~ <i>N</i>(0, <i>σ<sub>θ</sub></i><sup>2</sup>) · 반응성(3): <i>b,u</i>는 생성기 속성, closed-loop은 적분. · vanilla IRT = <i>u</i>=0, <i>γ<sub>G</sub>c</i> 없음.</p>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>1~5단계를 한 줄로 합친 것. 읽는 법: <b>"충돌 확률 = 못 피하는 바닥(<i>u</i>) + 나머지에서 (생성기 기본난이도 + severity×기울기 − AV강건성)의 S자"</b>. 이 한 줄에 세 가지 새로움(반응성·severity·avoidability)이 다 들어 있고, 그걸 다 끄면(<i>u</i>=0, severity항 제거) 평범한 시험 IRT로 돌아간다 — 즉 우리 모델은 시험 IRT의 <b>확장</b>이다.</p></div>
+      </div>
+    </div>
+
+    <!-- STAGE 7 -->
+    <div class="stagebox" id="s7">
+      <div class="sb-head"><span class="sb-num">7</span> 왜 SUT-불변인가 (specific objectivity) <span class="sb-maps">★ 핵심 주장 · vs Ponn·Qiu·Bronstein</span></div>
+      <div class="sb-body">
+        <p>단일 AV(또는 한 무리)의 충돌률은 무엇을 재는가? item <i>s</i>의 충돌률은:</p>
+        <div class="eq"><span class="lbl">(7)</span><i>r<sub>s</sub></i> <span class="op">=</span> <i>E</i><sub>π</sub>[ <i>Y<sub>π,s</sub></i> ] <span class="op">=</span> <i>u<sub>s</sub></i> <span class="op">+</span> (1<span class="op">−</span><i>u<sub>s</sub></i>) <i>E</i><sub>π</sub>[ <i>σ</i>( <i>a<sub>s</sub></i>( <i>b<sub>s</sub></i> <span class="op">−</span> <i>θ<sub>π</sub></i> ) ) ]</div>
+        <p class="where">→ <i>r<sub>s</sub></i>는 난이도 <i>b<sub>s</sub></i> 와 <b>측정에 쓴 AV들의 실력 분포</b>를 섞는다. 그 분포가 바뀌면 <i>r<sub>s</sub></i>가 바뀐다 = <b>SUT 의존성</b>.</p>
+        <p>반면 IRT는 <i>θ<sub>π</sub></i>를 <b>모형 안에 넣어</b> 분리 추정한다. Rasch(1)에서는 조건부 최대우도가 <i>θ</i>를 소거하므로, 난이도 추정 <i>b̂</i>가 보정에 쓴 AV 집단의 실력 분포에 <b>불변</b>이다(specific objectivity). 즉:</p>
+        <div class="callout callout--punch"><div class="c-title">한 문장</div><p>충돌률은 "난이도 × 잰 사람"을 섞어 SUT에 흔들리지만, 측정 모델의 <i>b</i>·<i>θ</i>는 (모형이 맞는 한) 서로의 표본에 둔감하게 분리 추정된다. 이것이 우리가 약속하는 SUT-불변성의 수학적 정체다.</p></div>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말 · 경쟁과의 대비</div><p>충돌률은 "어려운 문항이라서 틀린 것"인지 "약한 수험생이라서 틀린 것"인지 구분 못 한다 — 그래서 어떤 수험생들로 쟀냐에 따라 문항 난이도 순위가 뒤집힌다. IRT는 수험생 실력을 모형에 같이 넣어 둘을 떼어낸다. <b>Ponn</b>은 둘을 떼려고 결과(충돌)를 아예 버렸고, <b>Qiu</b>는 수험생을 한 명으로 고정했고, <b>Bronstein(Waymo)</b>은 블랙박스 회귀로 평균 냈다 — 셋 다 부분적이다. 우리는 결과를 쓰면서, 여러 AV로, 매칭 없이, 불확실성까지 붙여 분리한다.</p></div>
+        <p class="note-inline">검증(RQ2): 보정 AV 집단을 바꿔가며 <i>b̂</i>가 안 흔들리는지(측정 불변성 / DIF 검정)로 직접 시험한다. 큰 체계적 역전(family 간)이 남으면 1차원 가정 위반 신호 → 8·9단계 한정·MIRT.</p>
+      </div>
+    </div>
+
+    <!-- STAGE 8 -->
+    <div class="stagebox" id="s8">
+      <div class="sb-head"><span class="sb-num">8</span> 추정 — 교차 혼합효과 모형 <span class="sb-maps">De Boeck explanatory IRT · Oliveira two-level</span></div>
+      <div class="sb-body">
+        <p>가장 단순한 추정형(1PL·severity 조건화)은 표준적인 <b>교차 랜덤효과 로지스틱 회귀(GLMM)</b>다.</p>
+        <div class="eq"><span class="lbl">(8)</span>logit <i>P</i>(<i>Y<sub>π,s</sub></i>=1) <span class="op">=</span> <i>β<sub>G</sub></i> <span class="op">+</span> <i>γ<sub>G</sub> c<sub>s</sub></i> <span class="op">−</span> <i>θ<sub>π</sub></i> <span class="op">,</span> &nbsp; <i>θ<sub>π</sub></i> ~ <i>N</i>(0, <i>σ<sub>θ</sub></i><sup>2</sup>)</div>
+        <p class="where">AV는 랜덤효과(person), 생성기·severity는 item 공변량. 2PL/3PL(변별력 <i>a<sub>G</sub></i>·바닥 <i>u</i>) 추가 시 비선형 → Bayesian(Stan/brms)로 추정, <i>u</i>엔 RSS 라벨을 사전정보로.</p>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>겁먹을 필요 없다 — 이건 통계 패키지로 바로 돌아가는 <b>혼합효과 모형</b>이다(난이도를 "생성기+severity"라는 설명변수로 푸는 형태 = explanatory IRT). 음성 평가에서 난이도를 "문장+화자"로 쪼갠 Oliveira의 two-level IRT와 똑같은 구조를, 우리는 "생성기+severity"로 쓴다 — 이미 검증된 길이다.</p></div>
+      </div>
+    </div>
+
+    <!-- STAGE 9 -->
+    <div class="stagebox" id="s9">
+      <div class="sb-head"><span class="sb-num">9</span> decision study — 몇 개나 필요한가</div>
+      <div class="sb-body">
+        <p>난이도·강건성을 목표 신뢰도로 추정하려면 AV 몇 개 × 시나리오 몇 개 × seed 몇 개가 필요한가? IRT의 <b>정보량(information)</b>으로 답한다. 난이도 추정의 표준오차는 그 item을 푼 AV들이 주는 정보의 합에 반비례:</p>
+        <div class="eq"><span class="lbl">(9)</span>SE( <i>b̂<sub>s</sub></i> ) <span class="op">∝</span> 1 <span class="op">∕</span> √( Σ<sub>π</sub> <i>I<sub>π</sub></i>(<i>b<sub>s</sub></i>) )</div>
+        <p class="where"><i>I<sub>π</sub></i> : AV <i>π</i>가 item <i>s</i>에 주는 Fisher 정보(자기 실력이 그 난이도 근처일 때 최대). 목표 신뢰도 <i>ρ</i>에 맞춰 설계 규모를 정하는 D-study(일반화가능도 이론).</p>
+        <div class="callout callout--plain"><div class="c-title">쉬운 말</div><p>"AV를 몇 종, 시나리오를 몇 개 돌려야 순위를 믿을 수 있나?"에 <b>숫자로</b> 답하는 부분. 자원 제약이 없으니(클라우드) 격자를 키워 신뢰도를 끌어올릴 수 있고, 이 분석 자체가 기여 3번이다. (Fan PMCT의 PAC 신뢰구간 발상을 여기 신뢰구간에 참고.)</p></div>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <h2 id="summary">한눈에 — 구조 × 수식 × 관련연구 × RQ</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>구조</th><th>수식</th><th>어떤 한계를 푸나 (관련연구)</th><th>RQ</th></tr></thead>
+        <tbody>
+          <tr><td>기본 측정 (가져옴)</td><td>(1)(2)</td><td>난이도·강건성 동시 추정 (IRT 토대: Martínez-Plumed)</td><td>RQ2</td></tr>
+          <tr><td><b>reactivity</b> (새로움·전제)</td><td>(3a)</td><td>구체 시나리오 재사용 불가 → 난이도는 생성기 속성 (Hauer)</td><td>RQ2·3</td></tr>
+          <tr><td><b>severity 조건화</b> (새로움·주축)</td><td>(4)(4′)</td><td>난이도 다이얼을 강건성 <b>곡선</b>으로 (Wang-Ma-Lai·Yang을 불변척도 위로)</td><td>RQ3</td></tr>
+          <tr><td><b>avoidability</b> (새로움·보조)</td><td>(5)</td><td>무과실 충돌 분리 (Ponn 제외·LD-Scene§4.9·Khan RSS)</td><td>RQ3</td></tr>
+          <tr><td>SUT-불변성</td><td>(7)</td><td>충돌률의 혼동을 분리 (vs Ponn·Qiu·Bronstein)</td><td>RQ1·2</td></tr>
+          <tr><td>추정·설계</td><td>(8)(9)</td><td>실현 가능성·필요 표본 (explanatory IRT, D-study)</td><td>RQ3</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout callout--note">
+      <div class="c-title">RQ 연결 정리</div>
+      <p><b>RQ1</b>(단일 충돌률 순위가 얼마나 불안정한가) = 식 (7)의 혼동을 데이터로 보임(AV 부분집합마다 순위 역전). <b>RQ2</b>(SUT-불변 추정·보정집단 둔감성) = specific objectivity + DIF 검정. <b>RQ3</b>(세 구조가 vanilla IRT보다 적합·안정 개선) = 모델 (1)→(4)→(5)를 단계적으로 켜며 적합도(WAIC/LOO)·순위 안정성 비교.</p>
+    </div>
+
+    <div class="callout callout--diff">
+      <div class="c-title">확정 사양 (working decisions · 2026-05-31 · 수정 가능)</div>
+      <p>다섯 가지 모델 선택을 아래와 같이 정한다. 공통 원칙은 가장 단순하고 방어 가능한 모델을 본형으로 두고, 더 복잡한 변형은 강건성 점검이나 향후 확장으로 돌리는 것이다.</p>
+      <ol>
+        <li><b>severity 함수</b> — 본형은 선형 <i>b</i>(<i>G,c</i>) = <i>β<sub>G</sub></i> + <i>γ<sub>G</sub>c</i> (해석 가능한 <i>c</i><sub>50</sub>을 줌). 단조 스플라인 적합을 강건성 점검으로 병행한다.</li>
+        <li><b>회피불가 바닥 <i>u</i></b> — 데이터만으로 자유 추정하지 않고, RSS·귀책 라벨(Khan, ego-liable)로 고정하거나 강한 사전정보로 준다. 약한 식별을 도메인 규칙으로 보완하며, 이는 시험 IRT엔 없던 강점이 된다.</li>
+        <li><b>결과 변수</b> — 본형은 0/1 충돌(분야 표준이며 SUT-불변 서술에 가장 깨끗). 확장으로 운동학에서 바로 나오는 순서형 {무사고·near-miss·충돌} GRM. 저충실도 시뮬레이터로 신뢰하기 어려운 부상 생체역학은 쓰지 않는다.</li>
+        <li><b>차원성</b> — 불변성 주장을 한 생성기의 severity sweep(일관된 family) 안으로 한정하고, 그 안의 1차원성을 검정한다. family 간 다차원성은 한계로 명시하고 MIRT를 향후 확장으로 둔다.</li>
+        <li><b>생성기 모수</b> — 생성기 집합이 작을 때는 <i>β<sub>G</sub></i>·<i>γ<sub>G</sub></i>·<i>a<sub>G</sub></i>를 생성기별 고정효과로 추정(투명). "어떤 생성기 집합을 줘도 안정"이라는 일반화 주장과 decision study에는 생성기 상위 계층(랜덤효과)을 얹는다.</li>
+      </ol>
+    </div>
+
+    <div class="footer">
+      AAAI 연구 정리 사이트 · 방법 형식화 · 최종 갱신 2026-05-31<br>
+      페이지: <a href="index.html">연구 개요</a> · <a href="method.html">방법 형식화</a> · <a href="lit-review.html">문헌 검토</a> · <a href="questions-log.html">질의 로그 · PDF 요청</a>
+    </div>
+
+  </main>
+</div>
+<script src="assets/app.js"></script>
+</body>
+</html>

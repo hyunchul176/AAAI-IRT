@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SUT-불변 측정 · 연구 개요 — AAAI</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="layout">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">AAAI · Main Track</div>
+      <h1>AV 적대 평가의<br>SUT-불변 측정</h1>
+      <div class="sub">IRT 기반 공통 척도 — 연구 정리 사이트</div>
+    </div>
+
+    <nav class="site-nav">
+      <a href="index.html" class="active"><span class="ic">◆</span> 연구 개요</a>
+      <a href="method.html"><span class="ic">∑</span> 방법 형식화 (Method)</a>
+      <a href="decisions.html"><span class="ic">✦</span> 결정 로그 (Decisions)</a>
+      <a href="d-study.html"><span class="ic">◎</span> D-study 결과</a>
+      <a href="lit-review.html"><span class="ic">▤</span> 문헌 검토 (Lit Review)</a>
+      <a href="questions-log.html"><span class="ic">✎</span> 질의 로그 · PDF 요청</a>
+    </nav>
+
+    <div class="toc-label">이 페이지 목차</div>
+    <ul class="toc">
+      <li><a href="#positioning">0 · 한 줄 포지셔닝</a></li>
+      <li><a href="#overview">1 · 연구 개요</a></li>
+      <li><a href="#novelty">2 · 신규성 (두 겹)</a></li>
+      <li><a href="#structures">3 · 세 가지 구조 (핵심)</a></li>
+      <li><a href="#motivation">4 · 동기 — 다섯 각도</a></li>
+      <li><a href="#claims">5 · 6대 주장 × 근거</a></li>
+      <li><a href="#intro">6 · 도입 초안</a></li>
+      <li><a href="#formulation">7 · 문제정의 골격</a></li>
+      <li><a href="#rq">8 · 연구 질문 (RQ)</a></li>
+      <li><a href="#contrib">9 · 기여</a></li>
+      <li><a href="#generator">10 · 생성기 방침</a></li>
+      <li><a href="#decisions">11 · 작업 결정 · 경계</a></li>
+      <li><a href="#defense">12 · Reviewer 방어</a></li>
+      <li><a href="#open">13 · 미결 항목</a></li>
+      <li><a href="#status">14 · 진행 상태</a></li>
+    </ul>
+  </aside>
+
+  <!-- ============ CONTENT ============ -->
+  <main class="content">
+
+    <header class="hero" id="positioning">
+      <div class="kicker">한 줄 포지셔닝</div>
+      <h1>흔들리지 않는 잣대로 적대 시나리오와 AV를 함께 재기</h1>
+      <p class="one-liner">LLM 평가에서 검증된 측정이론(IRT)을, 평가의 SUT 의존성이 알려진 문제인 자율주행 적대 평가에 처음으로 가져온다. 시나리오·생성기의 난이도와 AV의 강건성을 하나의 공통 척도 위에 올리고, <b>severity 조건화</b>와 <b>avoidability 가중</b>이라는 주행 고유의 구조로 다룬다.</p>
+      <div class="meta-row">
+        <span><b>타깃:</b> AAAI 메인 트랙 (방법론/이론 신규성)</span>
+        <span><b>주인공:</b> 측정 모델</span>
+        <span><b>조연:</b> 단순·표준 생성기 (IDM/MOBIL)</span>
+        <span><b>자원:</b> 제약 없음 (클라우드)</span>
+      </div>
+    </header>
+
+    <p class="note-inline">※ 이 사이트는 연구 계획 문서(<code>AAAI_SUT_invariant_measurement_plan.md</code>)를 구조화하고 점진적으로 구체화하기 위한 작업 공간입니다. 본문 초안은 국문 학술 문체 규칙(단일 흐름 도입, em-dash 금지, 기술용어 영어 병기)을 따릅니다.</p>
+
+    <hr class="section-divider">
+
+    <!-- 1 -->
+    <h2 id="overview"><span class="num">1</span>연구 개요</h2>
+    <p>적대적 주행 시나리오로 AV를 평가할 때, 충돌률 기반 비교가 <b>어떤 SUT(AV/planner)로 측정했느냐</b>에 따라 흔들리는 문제를 푼다. 측정이론(Item Response Theory, IRT 계열)을 가져와 시나리오·생성기 난이도와 AV 강건성을 <b>SUT-불변</b>(누가 측정하든 안 흔들리는) 공통 척도에 올린다..</p>
+    <div class="callout callout--note">
+      <div class="c-title">설명용 비유</div>
+      <p>시험문제 = 시나리오 / 생성기 · 수험생 = AV 정책 · 오답 = 충돌 · 문제 난이도 = 시나리오의 진짜 위험도 · 수험생 실력 = AV의 진짜 강건성.</p>
+    </div>
+    <p>이 논문의 주인공은 <b>측정 모델</b>(흔들리지 않는 평가를 만드는 방법)이다. 생성기는 그 모델을 검증하기 위한 재료(조연)다. 측정에 관한 얘기라 저충실도 시뮬레이터(예: highway-env)를 써도 reviewer가 시뮬레이터를 트집 잡기 어렵다는 점이 이 주제의 장점이다.</p>
+
+    <!-- 2 -->
+    <h2 id="novelty"><span class="num">2</span>신규성 (두 겹)</h2>
+    <p class="prose">이 연구의 새로움은 두 겹으로 이루어져 있다. 겉으로 드러나는 첫 번째 겹은 측정이론(Item Response Theory, IRT)을 자율주행 적대 평가에 처음으로 가져왔다는 점이다. 그러나 이 한 겹만으로는 잘 만든 응용 연구에 머무를 위험이 있고, 방법론과 이론의 신규성을 중시하는 AAAI 메인 트랙에서는 그 경계선에 놓이기 쉽다.</p>
+    <p class="prose">진짜 무게는 두 번째 겹에 있다. 교육 평가에서 쓰는 시험용 IRT는 세 가지를 당연하게 전제한다. 문항이 고정되어 있고, 응시는 한 번뿐이며, 능력은 하나의 차원으로 충분하다는 것이다. 그런데 자율주행 적대 평가에서는 이 세 전제가 모두 성립하지 않는다. 시나리오는 AV의 행동에 반응하고(closed-loop), 같은 생성기로 위험도를 연속해서 조절할 수 있으며, 충돌에는 회피할 수 있었던 것과 누구도 피할 수 없는 것이 섞여 있다. 본 연구의 핵심 기여는 바로 이 세 가지(다음 절의 반응성, severity 조건화, avoidability)를 측정 모델 안으로 끌어들여 형식화하는 데 있다.</p>
+    <p class="prose">여기서 신규성의 범위를 정확히 그어둘 필요가 있다. 2026년 5월 말에 수행한 문헌 조사가 분명히 보여주듯, IRT를 인공지능 평가에 쓰는 일은 이미 성숙한 분야다. 분류기와 회귀 모델은 물론 군집, 음성, 자연어 벤치마크, 대규모 언어 모델, 심지어 강화학습 에이전트(Atari, GVGAI) 평가에까지 적용되어 왔다(특히 Martínez-Plumed 계열의 일련의 연구로, <a href="lit-review.html#irt">문헌 검토 G절</a>에 정리했다). 따라서 "측정이론을 인공지능 평가에 처음 가져왔다"는 식의 넓은 주장은 성립하지 않으며, 그렇게 말해서도 안 된다. 우리가 방어할 수 있는 정확한 주장은 다음과 같다. <b>closed-loop이자 적대적인 자율주행 평가에 측정이론을 처음으로 적용했고, 거기에 반응성과 severity 조건화, avoidability를 반영한 새 측정 모델을 제시한다.</b> 우리 동기와 가장 가까운 두 선행 연구, 곧 여러 플래너에 걸친 policy-agnostic difficulty를 학습한 <a href="lit-review.html#bronstein">Bronstein 외(2023, Waymo)</a>와 IRT를 강화학습 에이전트에 적용한 <a href="lit-review.html#irt">Dual Indicators(2020)</a>는 본문에서 반드시 인용하고 우리 접근과의 차이를 분명히 한다.</p>
+
+    <!-- 3 -->
+    <h2 id="structures"><span class="num">3</span>세 가지 구조 <span class="note-inline">(깊은 겹의 본체)</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>구조</th><th>시험 IRT는</th><th>AV 적대 평가는</th><th>무게</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>reactivity</b><br>반응성</td>
+            <td>문항이 가만히 있다 (고정 자극)</td>
+            <td>시나리오·생성기가 AV 행동에 반응한다 (closed-loop). 시나리오는 정책에 따라 달라지는 <b>응답 과정</b>이며, 난이도는 그 과정을 만드는 생성기의 속성으로 정의.</td>
+            <td>전제 (틀)</td>
+          </tr>
+          <tr>
+            <td><b>severity-conditioning</b><br>severity 조건화</td>
+            <td>난이도는 문항마다 하나의 값</td>
+            <td>같은 생성기로 위험도를 연속 조절(severity dial <code>c_level</code>). 하나의 난이도 대신 severity에 따른 <b>강건성 곡선</b>을 모델링.</td>
+            <td><b>주축 (무게중심)</b></td>
+          </tr>
+          <tr>
+            <td><b>avoidability-weighting</b><br>avoidability 가중</td>
+            <td>모든 오답이 동등</td>
+            <td>충돌엔 회피가능(시스템 결함)과 회피불가(누구도 못 피함)가 섞임. <b>회피가능 충돌만</b> 강건성에 반영.</td>
+            <td>보조</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note-inline">무게중심을 severity에 둔 근거: <code>c_level</code> 경험으로 자연스럽고, 시험 IRT에 가장 분명히 없는 구조라는 점.</p>
+
+    <!-- 4 -->
+    <h2 id="motivation"><span class="num">4</span>동기 — 주장 3을 받치는 다섯 각도</h2>
+    <p class="prose">이 연구의 출발점이 되는 핵심 주장은, 충돌을 기준으로 한 비교와 난이도가 어떤 AV로 측정했느냐에 따라 흔들린다는 것이다. 이 주장은 한두 사례의 우연이 아니라, 성격이 서로 다른 다섯 갈래의 근거가 같은 곳을 가리키며 받쳐 준다.</p>
+    <p class="prose">첫째는 개념적 정의다. Ponn 외(2020)는 충돌과 위기를 기준으로 한 criticality가 정의상 시험 차량의 행동에 따라 달라진다고 명시한다. 둘째는 통제된 실험이다. Shen 외(2025)는 시나리오 유형과 긴급도(THW, TTC)를 자동화 수준 사이에서 거의 동일하게 맞춘 뒤에도, 충돌률이 SUT만으로 12.6%에서 24.3%까지 약 두 배 벌어짐을 보였다. 셋째는 난이도 정의의 순환성이다. Qiu 외(2026)는 알고리즘과 무관한 난이도를 주장하지만, 그 난이도는 하나의 고정된 EV 플래너 궤적에서 계산되고 또 다른 알고리즘 집단의 성능으로 검증된다. 넷째는 분산의 분해다. 본 저자의 선행 연구에서는 충돌 결과 분산의 71.5%가 defender(AV)의 정체성에서 비롯되었다(저자, 2026, 심사 중). 다섯째는 최신 SOTA 생성기 자신의 표다. LD-Scene(Peng 외, 2026)은 같은 생성기를 ego planner만 바꾸어 평가했을 때 충돌률이 약 41%에서 63%로 출렁임을, 다름 아닌 자신의 transferability 표에 그대로 보고한다.</p>
+    <p class="prose">개념적 정의, 통제된 실험, 정량 분석, 그리고 SOTA 생성기 자신의 데이터가 모두 같은 결론으로 모인다.</p>
+    <div class="callout callout--punch">
+      <div class="c-title">동기 펀치라인 (초안)</div>
+      <p>최신 SOTA 생성기는 ego를 바꾸면 충돌률이 약 41→63%로 달라지고(LD-Scene), 시나리오·긴급도를 통제한 실험조차 SUT만으로 충돌률이 2배 출렁이며(Shen), 난이도를 정량화하려는 시도는 한 SUT를 고정해야만 안정적이다(Qiu). 단일 SUT 충돌률은 생성기·시나리오의 불변 척도가 될 수 없으며, 이는 측정이론이 처음부터 풀려고 만들어진 문제다.</p>
+    </div>
+
+    <!-- 5 -->
+    <h2 id="claims"><span class="num">5</span>동기 논증 — 6대 주장 × 근거 매핑</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>주장</th><th>받치는 근거</th><th>상태</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>적대 시나리오 생성이 AV 테스트 핵심 도구가 됐고 폭증</td><td>서베이들 + LD-Scene 등 최신 생성 논문</td><td><span class="badge b-verified">확보</span></td></tr>
+          <tr><td>2</td><td>거의 보편적으로 충돌(률·빈도·근접)을 우수성 지표로 씀</td><td>LD-Scene Table 1 (Adv-Ego Coll이 첫 지표)</td><td><span class="badge b-verified">확보</span></td></tr>
+          <tr><td>3</td><td><b>(심장)</b> 충돌 기반 비교·난이도가 SUT에 흔들린다</td><td>Ponn(개념)+Shen(통제)+Qiu(순환)+71.5%+LD-Scene T4</td><td><span class="badge b-verified">확보 · 5각도</span></td></tr>
+          <tr><td>4</td><td><b>(stakes)</b> 흔들림이 해롭다 (regression 무효·보수주행·provable 아님)</td><td>Liao 2025 Demand 3 + Fan 2026 PMCT + Shen(충돌·부상 해리)</td><td><span class="badge b-verified">확보</span></td></tr>
+          <tr><td>5</td><td>IRT는 SUT-불변 비교용으로 설계됐고 ML·LLM·분류기·<b>RL 에이전트</b> 평가서 검증됨</td><td>Martínez-Plumed 2019·2020(Dual Indicators), Cardoso 2020, Moraes(Γ-IRT) 2022, Oliveira(two-level) 2025, Zhou 2025, agent psychometrics 2026 — <a href="lit-review.html#irt">G절</a></td><td><span class="badge b-verified">확보 · 범위 한정</span></td></tr>
+          <tr><td>6</td><td>시험용 IRT는 AV에 그대로 안 맞음 → 새 모델 필요</td><td>논증 (2절 깊은 겹) + IRT 한계 실증 (Rodriguez/Lalor 2022)</td><td><span class="badge b-review">논증</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note-inline">근거 논문의 정독 내용은 <a href="lit-review.html">문헌 검토</a> 페이지에 논문별로 정리되어 있습니다.</p>
+
+    <!-- 6 -->
+    <h2 id="intro"><span class="num">6</span>도입(Introduction) 초안</h2>
+    <p class="note-inline">국문 학술 문체 · 단일 흐름. 제출 전 (ref needed) 항목 확정 및 LD-Scene/ACARL 수치 원문 대조 필요.</p>
+    <div class="prose">
+      <p>적대적 시나리오 생성은 자율주행차(AV)의 안전성을 평가하는 핵심 도구로 자리 잡았다. 실제 도로 주행 데이터만으로는 충돌로 이어지는 위험 상황이 드물게 나타나므로, 최적화·강화학습·생성 모델로 위험 상황을 의도적으로 만들어내는 방법이 빠르게 늘고 있다 (Ding et al., 2023; Peng et al., 2026). 이때 생성기의 우수성과 시나리오의 난이도는 거의 예외 없이 충돌과 관련된 양으로 측정된다. 충돌률, 충돌 빈도, 근접도(TTC, THW)가 대표적이며, 최신 연구들도 adversarial collision rate를 첫 번째 우수성 지표로 보고한다 (Peng et al., 2026).</p>
+      <p>그러나 충돌을 기준으로 한 비교에는 근본적인 문제가 있다. 같은 시나리오나 생성기라도 어떤 AV로 측정하느냐에 따라 충돌률이 크게 달라진다. 충돌률은 시나리오의 난이도가 아니라, 시나리오와 평가 대상 시스템(System Under Test, SUT)이 만나서 만들어내는 결과를 측정한다. 생성기 A가 B보다 더 어렵다는 결론이 특정 AV에서만 성립하고 다른 AV에서는 뒤집힌다면, 그 비교는 생성기에 대한 안정적인 척도가 될 수 없다. 측정값이 어떤 AV로 쟀느냐에 따라 달라지는 이 문제를 이하에서 SUT 의존성이라 부른다.</p>
+      <p>SUT 의존성은 한두 사례의 예외가 아니라 서로 다른 연구에서 반복적으로 확인된다. Ponn et al. (2020)은 충돌과 위기를 기준으로 한 criticality가 정의상 test vehicle의 행동에 따라 달라지므로, 좋은 테스트 시나리오를 사전에 고르는 데 부적합하다고 지적한다. 같은 concrete 시나리오라도 평가하는 AV가 다르면 criticality 결과가 달라지기 때문이다. 실제로 선행 연구가 critical로 분류한 highD 시나리오 하나를 행동과 무관한 복잡도로 다시 평가하면 중간 수준에 불과하다. 시나리오 자체가 어려운 것이 아니라, 그 시나리오를 주행한 운전자의 대응이 나빴을 뿐이다. Shen et al. (2025)은 이를 통제된 실험으로 보여준다. 이들은 시나리오 유형과 긴급도(THW, TTC)를 자동화 수준 사이에서 거의 동일하게 맞춘 뒤 충돌률을 비교했는데, 시나리오 난이도를 사실상 상수로 고정했는데도 충돌률은 SUT만으로 12.6%에서 24.3%까지 약 두 배 차이가 났다. 더 나아가 시나리오 유형에 따라 SUT 사이의 순위마저 뒤집혔다. 어떤 시나리오에서 가장 안전하던 시스템이 다른 시나리오에서는 가장 위험했다.</p>
+      <p>난이도를 SUT와 무관하게 매기려는 최근 시도조차 같은 한계를 드러낸다. Qiu et al. (2026)은 알고리즘과 독립적인 시나리오 난이도를 주장하지만, 이를 얻는 방법은 하나의 EV 플래너를 고정하고 그 플래너의 궤적에서 복잡도를 계산하는 것이다. 게다가 이들이 사용한 난이도의 ground truth는 대회 참가 알고리즘들의 평균 성능이다. 결국 난이도가 한 SUT를 기준으로 정의되고, 또 다른 SUT 집단의 성능으로 검증된다. 한편 본 저자의 선행 연구에서는 충돌 결과의 분산이 어떤 요인에서 오는지 살펴보면 defender(AV) 정체성이 분산의 71.5%를 차지한다 (저자, 2026, under review). 최신 SOTA 생성기인 LD-Scene 역시 자신의 transferability 표에서 ego planner를 바꾸면 충돌률이 약 41%에서 63%로 달라진다 (Peng et al., 2026). 개념적 정의, 통제 실험, 정량 분석, 그리고 SOTA 생성기 자신의 결과가 모두 같은 곳을 가리킨다. 단일 SUT 충돌률은 생성기와 시나리오의 불변 척도가 될 수 없다.</p>
+      <p>이 의존성은 단순한 측정상의 불편이 아니라 실제 해를 낳는다. 첫째, AV를 업데이트할 때마다 같은 생성기의 난이도가 달라지면 버전 사이의 regression 테스트가 무효가 된다. 둘째, 충돌률이 낮다고 해서 좋은 주행을 뜻하지는 않는다. 지나치게 보수적으로 운전해 잦은 급제동을 일으키는 AV는 충돌률이 낮아도 추돌을 유발할 수 있다 (Liao et al., 2025). 셋째, 충돌률이나 근접도 같은 지표는 희귀 사건에 기반하므로 신뢰성에 대한 형식적 보장을 주지 못한다 (Fan et al., 2026). Shen et al. (2025)에서도 충돌률이 더 낮은 L3 시스템이 오히려 더 심각한 탑승자 부상을 낳아, 충돌률과 안전이 같은 방향으로 움직이지 않음이 드러난다.</p>
+      <p>이 문제를 다루려면 측정값이 누가 측정하든 흔들리지 않아야 한다. 교육 평가(educational testing)에서 출발한 문항반응이론(Item Response Theory, IRT)은 바로 이 목적을 위해 설계되었다. 서로 다른 응시자로 측정해도 문항 난이도가 흔들리지 않고, 서로 다른 문항으로 측정해도 응시자 능력이 흔들리지 않는 측정(specific objectivity)이 그것이다. IRT는 분류기와 회귀 모델 (Martínez-Plumed et al., 2019; Moraes et al., 2022), 강화학습 에이전트 (Martínez-Plumed and Hernández-Orallo, 2020), 그리고 최근 대규모 언어 모델 (Zhou et al., 2025; Kryvosheieva et al., 2026) 평가에서 표본에 둔감한 비교 도구로 검증되어 왔다. 그러나 자율주행의 closed-loop 적대적 평가에는 아직 적용된 바 없다. 본 연구는 IRT 계열의 측정 모델을 AV 적대 평가에 처음으로 가져와, 시나리오와 생성기의 난이도, 그리고 AV의 강건성을 하나의 공통 척도 위에 올린다.</p>
+      <p>다만 교육 평가용 IRT를 그대로 가져올 수는 없다. 시험 문항이 가만히 있는 것과 달리, AV 적대 평가에는 시험 IRT가 가정하지 않는 세 가지 구조가 있다. (i) <b>반응성(reactivity)</b>: 시나리오와 생성기가 AV의 행동에 반응한다(closed-loop). 따라서 하나의 시나리오는 고정된 자극이 아니라 정책에 따라 달라지는 응답 과정이며, 난이도는 이 과정을 만들어내는 생성기의 속성으로 정의되어야 한다. (ii) <b>severity 조건화(severity-conditioning)</b>: 같은 생성기로 위험도를 연속적으로 조절할 수 있다(예: severity dial c_level). 하나의 난이도 값 대신, severity에 따라 달라지는 강건성 곡선을 모델링해야 한다. (iii) <b>avoidability 가중(avoidability-weighting)</b>: 충돌에는 시스템이 피할 수 있었던 것과 누구도 피할 수 없는 것이 섞여 있다. 회피 가능한 충돌만 강건성에 반영해야 한다. LD-Scene의 저자들도 ego planner의 잘못이 아닌 충돌을 인정하며, 충돌의 귀책(attribution) 분석을 향후 과제로 꼽는다 (Peng et al., 2026). 본 연구의 핵심 신규성은 이 세 구조를 측정 모델로 형식화하는 데 있다. 한편 SUT와 시나리오 사이에는 비단조 상호작용이 나타날 수 있으므로 (Shen et al., 2025), 본 연구는 하나의 생성기에서 severity를 변화시켜 얻은 일관된 시나리오 family 안에서 척도의 불변성을 먼저 확립하고, family 사이의 다차원성은 본 연구의 경계로 명시한다.</p>
+    </div>
+
+    <!-- 7 -->
+    <h2 id="formulation"><span class="num">7</span>문제정의(Problem Formulation) 골격</h2>
+    <p class="note-inline">도입과 분리해 본문에 짧게 둘 형식 정의 (영어 표기, 본문에서 1단락 내외).</p>
+    <ul>
+      <li>AV 정책 집단 <span class="mono">Π = {π}</span>, 각 π는 잠재 강건성 <span class="mono">θ_π</span>를 가진다. (family 간 비교에서는 θ_π를 벡터로 두는 MIRT로 일반화.)</li>
+      <li>생성기 <span class="mono">G</span>와 severity <span class="mono">c ∈ [0, c_max]</span>가 시나리오 item <span class="mono">s = (G, c)</span>를 만든다. item은 난이도 <span class="mono">b(G, c)</span>를 가지며, b는 c에 대해 단조 증가 (severity-conditioning).</li>
+      <li><b>반응성</b>: s의 실현 궤적은 π에 따라 달라진다 → item을 고정 자극이 아니라 π에 반응하는 응답 과정으로 두고, 난이도는 G(와 c)의 속성으로 식별.</li>
+      <li><b>응답</b>: 충돌 결과 <span class="mono">Y_{π,s} ∈ {0,1}</span>. avoidability 가중 <span class="mono">w_{π,s} ∈ [0,1]</span>로 회피가능 충돌만 θ_π 추정에 기여.</li>
+      <li><b>측정 모델</b>: <span class="mono">P(Y_{π,s}=1) = f(θ_π, b(G,c))</span>, crossed Π×S 설계에서 {θ_π}와 {b(G,c)}를 공통 척도 위에서 동시 식별. 핵심 성질은 <b>specific objectivity</b> — b는 보정 표본의 능력 분포에, θ는 사용한 item 집합에 둔감.</li>
+      <li><b>대비 기준</b>: 단일 AV 충돌률 <span class="mono">r_s = mean_π Y_{π,s}</span>는 b와 θ를 한데 섞는다. 본 연구의 척도는 이 둘을 분리.</li>
+    </ul>
+
+    <!-- 8 -->
+    <h2 id="rq"><span class="num">8</span>연구 질문 (RQ)</h2>
+    <div class="callout callout--note">
+      <p><b>RQ1.</b> 단일 충돌률에 기반한 난이도·강건성 순위는 어떤 AV로 측정하느냐에 따라 얼마나 불안정한가?</p>
+      <p><b>RQ2.</b> 제안한 측정 모델은 SUT-불변 난이도·강건성 추정을 제공하는가? 추정된 모수는 보정에 사용한 AV 집단에 얼마나 둔감한가?</p>
+      <p><b>RQ3.</b> 반응성·severity 조건화·avoidability 가중을 반영했을 때, 단순 IRT에 비해 모델 적합도와 순위 안정성이 얼마나 개선되는가?</p>
+    </div>
+
+    <!-- 9 -->
+    <h2 id="contrib"><span class="num">9</span>기여 (Contributions)</h2>
+    <ol>
+      <li>AV 적대 평가의 SUT 의존성 문제를 <b>개념·통제실험·정량·SOTA</b>의 네 각도로 정리하고, 측정 이론의 언어로 정식화한다.</li>
+      <li>반응성·severity 조건화·avoidability 가중을 반영한 <b>IRT 계열 측정 모델</b>을 제안하여, 시나리오·생성기 난이도와 AV 강건성을 SUT-불변 공통 척도 위에 올린다.</li>
+      <li>표준적·단순한 생성기 묶음(IDM/MOBIL)과 다수의 AV 정책 위에서, 제안 척도의 <b>순위 안정성</b>이 단일 충돌률 순위의 불안정성(순위 역전)보다 우월함을 보이고, 목표 신뢰도에 필요한 AV·시나리오 수를 추정하는 <b>decision study</b>를 제시한다.</li>
+    </ol>
+
+    <!-- 10 -->
+    <h2 id="generator"><span class="num">10</span>생성기 방침 <span class="badge b-verified">확정</span></h2>
+    <ul>
+      <li><b>ACARL은 재활용하지 않는다.</b> 새로, 일부러 단순하게 만든다: IDM/MOBIL 기반 + 공격성 다른 몇 종 + severity 조절 가능한 1종.</li>
+      <li>이유: 측정 모델이 주인공이라 생성기는 평범·표준적인 게 좋다. 메시지는 "우리 측정 모델은 <b>어떤 생성기 묶음을 줘도</b> 안정적으로 순위를 매긴다". ACARL은 별도 심사 중(AAP)이고, 재활용하면 생성기 논문처럼 보여 메시지가 흐려진다.</li>
+      <li>자원 제약이 없으므로 실험 규모(더 많은 AV × 생성기 × severity 격자)를 키워 empirical power를 높인다.</li>
+    </ul>
+
+    <!-- 11 -->
+    <h2 id="decisions"><span class="num">11</span>작업 결정 · 차원성 경계</h2>
+    <div class="callout callout--diff">
+      <div class="c-title">현재 작업 결정 (working decisions)</div>
+      <p><b>깊은 겹의 무게중심:</b> severity 조건화를 주축, avoidability 가중을 보조, reactivity를 전제(틀)로 배치. 셋을 다 형식화하되 무게중심은 severity.</p>
+      <p><b>차원성 경계:</b> 단순 1차원 IRT는 SUT×시나리오 교차역전(Shen)에 취약 → 불변성 주장을 <b>하나의 생성기 severity sweep</b>(= 일관된 시나리오 family) 안으로 한정. family 사이 다차원성은 본 연구의 경계로 명시 (필요 시 MIRT).</p>
+    </div>
+
+    <!-- 12 -->
+    <h2 id="defense"><span class="num">12</span>예상 Reviewer 반박과 방어</h2>
+    <p class="note-inline">방어 순서: ① 한계 인정 → ② 기여는 원리 수준 → ③ 한계를 현실적 대표성으로 재해석 → ④ 향후 검증.</p>
+    <div class="toolbar"><button class="btn" data-acc-toggle data-state="closed">모두 펼치기</button></div>
+
+    <details class="acc"><summary>1 · "IRT는 기성품이다. 응용 논문 아닌가."</summary>
+      <div class="acc-body"><p>시험 IRT의 세 가정(고정 문항·1회 응시·1차원 능력)이 AV 적대 평가에서 모두 성립하지 않는다. 우리는 반응성·severity·avoidability를 반영한 새 측정 모델을 형식화한다. 신규성은 적용이 아니라 모델에 있다. <b>배치:</b> 도입(세 구조 단락) + Method.</p></div>
+    </details>
+    <details class="acc"><summary>2 · "SUT 의존성은 LD-Scene 한 표 아닌가."</summary>
+      <div class="acc-body"><p>개념적 정의(Ponn), 긴급도를 맞춘 통제 실험에서 약 2배 차이와 순위 역전(Shen), 순환적 난이도(Qiu), 분산의 71.5%(본 저자), SOTA 자기 표(LD-Scene)까지 다섯 각도가 동일 결론을 가리킨다. <b>배치:</b> 도입 동기 + Related Work.</p></div>
+    </details>
+    <details class="acc"><summary>3 · "결과(충돌)를 쓰면 다시 SUT 의존 아닌가." <span class="note-inline">(Ponn이 미리 깔아둔 반박)</span></summary>
+      <div class="acc-body"><p>① 개별 응답 P(Y|s,π)는 SUT 의존이 맞다. ② 그러나 잠재 모수 b, θ는 crossed 설계에서 식별·분리 가능하다(specific objectivity). 단일 AV 충돌률은 난이도와 능력을 섞지만, IRT는 person을 모형에 넣어 분리한다. ③ 따라서 우리는 결과 정보를 버리는 Ponn 방식을 subsumption 하면서 불확실성까지 정량화한다. <b>배치:</b> Method(식별성) + Related Work(vs Ponn).</p></div>
+    </details>
+    <details class="acc"><summary>4 · Yang et al. (2025, <i>Research</i>; 구 arXiv 2024)와의 구분</summary>
+      <div class="acc-body"><p>그들의 난이도는 단일 고정 ego에 종속되고 training step으로 정의되는 순환 구조다. 우리는 여러 AV에 걸쳐 불변 척도 위에서 측정한다. 그들의 생성기는 위협이 아니라 우리 item 공급원·baseline으로 쓸 수 있다. <b>배치:</b> Related Work.</p></div>
+    </details>
+    <details class="acc"><summary>4b · "policy-agnostic difficulty는 이미 있다" (Bronstein/Waymo 2023) <span class="badge b-todo">신규 대응</span></summary>
+      <div class="acc-body"><p>가장 가까운 선행. Bronstein et al.은 여러 플래너로 학습해 시나리오의 policy-agnostic 난이도를 추정하고 새 플래너로 zero-shot 전이한다. 차별: ① 블랙박스 충돌/근접 난이도 <b>회귀</b>지 IRT/Rasch 잠재특성 모델이 아니다 ② curriculum·데이터효율 프레이밍이지 적대 평가·측정이론이 아니다 ③ 난이도와 AV 강건성을 <b>하나의 공통 잠재척도에 함께 올리지 않는다</b> ④ reactivity·severity·avoidability 세 구조가 없다. 또한 IRT-for-RL-agents 선행(Dual Indicators 2020)도 <b>static game</b> 과제라 closed-loop 적대 주행과 다르다. <b>배치:</b> Related Work + 도입 신규성 문장 정밀화.</p></div>
+    </details>
+    <details class="acc"><summary>5 · PMCT (Fan et al., 2026)와의 구분</summary>
+      <div class="acc-body"><p>PMCT의 policy-agnostic 주장은 실시간 안전 지표(TTC류) 층위이지, 생성기·시나리오 비교 층위가 아니다. 난이도와 능력을 같은 척도에 올리지 않는다. <b>배치:</b> Related Work 한 줄.</p></div>
+    </details>
+    <details class="acc"><summary>6 · 차원성·교차 상호작용</summary>
+      <div class="acc-body"><p>Shen의 순위 역전은 비단조 교차이며 단순 1차원 IRT의 일차원성 가정에 부담을 준다(2PL이 discrimination 차이로 일부 흡수하나 큰 체계적 역전은 다차원을 시사). ① 한계 인정 ② 불변성 주장을 일관된 시나리오 family로 한정 ③ Shen의 역전 상당부분은 human takeover 교란이라 closed-loop AV 정책 평가인 우리에겐 약하게 붙는다 ④ family 간 다차원성은 MIRT로 향후 확대. <b>배치:</b> Method(가정) + Limitations, 단 Method에서 선제.</p></div>
+    </details>
+    <details class="acc"><summary>7 · "저충실도 시뮬레이터(highway-env)로 충분한가."</summary>
+      <div class="acc-body"><p>① 충실도 한계 인정 ② 기여는 측정 모델·식별성의 원리 수준이라 시뮬레이터에 무관 ③ 오히려 표준·단순 생성기(IDM/MOBIL)를 일부러 써서, 결과가 특수 생성기의 산물이 아니라 어떤 생성기 묶음을 줘도 척도가 안정적임을 보인다. 자원 제약이 없어 AV×시나리오×severity 격자를 키워 empirical power 확보 ④ 고충실도·실차 데이터는 향후 검증. <b>배치:</b> 도입 위치선정 + Experiment + Limitations.</p></div>
+    </details>
+    <details class="acc"><summary>8 · "왜 ACARL 재활용이나 SOTA 생성기가 아니라 새 단순 생성기인가."</summary>
+      <div class="acc-body"><p>이 논문의 주인공은 측정 모델이다. 평범한 표준 생성기 묶음이라야 척도의 SUT-불변성이 생성기 특수성에 오염되지 않음을 보일 수 있다. ACARL은 별도 심사 중이고, 재활용하면 생성기 논문처럼 보인다. <b>배치:</b> Experiment design.</p></div>
+    </details>
+
+    <!-- 13 -->
+    <h2 id="open"><span class="num">13</span>현재 미결 항목</h2>
+    <ul>
+      <li>깊은 겹을 severity만으로 갈지, avoidability까지 포함할지, 셋을 어디까지 형식화할지의 <b>최종 확정</b>.</li>
+      <li>차원성 처리: family 한정 수준 vs MIRT 채택 범위.</li>
+      <li>도입의 <b>Figure 1</b> 구성 (같은 생성기, AV를 바꾸면 난이도·강건성 순위가 역전되는 그림).</li>
+      <li>방법 수식의 구체화 수준 (2PL/graded-response → severity 조건화 b(G,c) → avoidability 가중 → 식별성).</li>
+      <li>실험 설계 세부: AV 정책 종류, 생성기 묶음 구성, severity 격자 해상도, decision study 설정.</li>
+      <li><span class="badge b-refneeded">ref needed</span> 항목들의 정확한 서지 확정 + LD-Scene/ACARL 수치 원문 대조.</li>
+    </ul>
+
+    <!-- 14 -->
+    <h2 id="status"><span class="num">14</span>진행 상태 · 다음 단계</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>작업</th><th>상태</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>연구 계획 정독·구조화 (이 사이트)</td><td><span class="badge b-verified">완료</span></td><td>plan.md → HTML 3페이지</td></tr>
+          <tr><td>핵심 6편 정독 정리 (Ponn/Qiu/Shen/Fan/Liao/Peng)</td><td><span class="badge b-verified">완료</span></td><td><a href="lit-review.html">문헌 검토</a>에 정리됨</td></tr>
+          <tr><td>오픈웹 문헌조사·신규성 검증 (워크플로, 47편)</td><td><span class="badge b-verified">완료</span></td><td>신규성 한정 확정, Bronstein 위협 식별</td></tr>
+          <tr><td>leapspace 광역 질의 L1~L8</td><td><span class="badge b-verified">완료</span></td><td>서지 5건 확정, 6주장 전부 보강 → lit-review</td></tr>
+          <tr><td>claim 5 (IRT-for-AI) 서지 확정</td><td><span class="badge b-verified">완료</span></td><td>범위 한정 + <a href="lit-review.html#irt">G절</a> 채움</td></tr>
+          <tr><td>핵심 수치 verbatim 대조 (9편 전문 정독)</td><td><span class="badge b-verified">완료</span></td><td>LD-Scene 41→63%·Shen 12.6→24.3%·Ponn 0.37·Qiu 91.3%·Liao 30.14% 등 — <a href="lit-review.html">검증 로그</a></td></tr>
+          <tr><td>오픈액세스 선행 자체 fetch (Bronstein·Dual Indicators 등)</td><td><span class="badge b-review">진행</span></td><td>arXiv/OA 직접 — 차별화 단락 본문화</td></tr>
+          <tr><td>Method 수식 형식화 (1차)</td><td><span class="badge b-verified">완료</span></td><td>9단계 모델 → <a href="method.html">방법 형식화</a> (수식+쉬운말)</td></tr>
+          <tr><td>Figure 1 설계 · Method 세부 확정</td><td><span class="badge b-todo">예정</span></td><td>severity함수·u식별·GRM·차원성 등</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      AAAI 연구 정리 사이트 · 최종 갱신 2026-05-31 · 원본: <code>AAAI_SUT_invariant_measurement_plan.md</code><br>
+      페이지: <a href="index.html">연구 개요</a> · <a href="lit-review.html">문헌 검토</a> · <a href="questions-log.html">질의 로그 · PDF 요청</a>
+    </div>
+
+  </main>
+</div>
+<script src="assets/app.js"></script>
+</body>
+</html>

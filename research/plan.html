@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연구 계획 · AV 적대 평가의 SUT-불변 측정</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>(function(){try{var t=localStorage.getItem('theme')||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">AAAI · Main Track</div>
+      <h1>AV 적대 평가의<br>SUT-불변 측정</h1>
+      <div class="sub">연구 계획 (Research Plan)</div>
+    </div>
+
+    <button class="theme-toggle" type="button">☾ 다크 모드</button>
+
+    <div class="toc-label">이 페이지 목차</div>
+    <ul class="toc">
+      <li><a href="#summary">한 줄 요약</a></li>
+      <li><a href="#background">1 · 배경</a></li>
+      <li><a href="#need">2 · 문제와 필요성</a></li>
+      <li><a href="#aim">3 · 연구 목적</a></li>
+      <li><a href="#rq">4 · 연구 질문</a></li>
+      <li><a href="#novelty">5 · 신규성과 기여</a></li>
+      <li><a href="#approach">6 · 접근 개요</a></li>
+      <li><a href="#scope">7 · 범위 · 가정 · 경계</a></li>
+      <li><a href="#position">8 · 관련 연구 위치</a></li>
+    </ul>
+
+    <div class="toc-label">다른 문서</div>
+    <ul class="toc">
+      <li><a href="method.html">방법 형식화 (Method)</a></li>
+      <li><a href="roadmap.html">연구 수행 로드맵 (Roadmap)</a></li>
+      <li><a href="decisions.html">결정 로그 (Decisions)</a></li>
+      <li><a href="d-study.html">D-study 결과</a></li>
+      <li><a href="lit-review.html">문헌 검토 (원고용 요약)</a></li>
+      <li><a href="review/index.html">Literature Review (설계용 정독)</a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+
+    <header class="hero" id="summary">
+      <div class="kicker">Research Plan</div>
+      <h1>연구 계획</h1>
+      <p class="one-liner">충돌률에 기반한 AV 평가 결과가 <span class="mark">측정에 사용한 시스템(System Under Test, SUT)에 따라 달라지는 문제</span>를, 교육 평가의 측정이론(Item Response Theory, IRT. 시험 채점에서 문항의 난이도와 응시자의 실력을 한 번에 추정하는 이론)을 가져와 시나리오 난이도와 AV 강건성을 <span class="mark">하나의 공통된 척도로 함께 측정한다</span>. 이 척도는 측정에 사용한 AV가 달라져도 값이 변하지 않는다(SUT-불변).</p>
+      <div class="meta-row">
+        <span><b>타깃</b> AAAI 메인 트랙 (방법론·이론)</span>
+        <span><b>핵심 산출물</b> 측정 모델</span>
+        <span><b>도구</b> 단순·표준 시나리오 생성 기법</span>
+        <span><b>자원</b> 제약 없음 (클라우드)</span>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <h2 id="background"><span class="num">1</span>배경</h2>
+
+    <h4>① AV 안전성은 실주행만으로 입증하기 어렵다</h4>
+    <ul>
+      <li>자율주행차의 안전성을 사고·사망률 수준에서 통계적으로 입증하려면 <span class="mark">수억에서 수천억 마일</span>의 주행이 필요하고, 1천만 마일로도 결론을 내릴 수 없다 <span class="cite"><a class="cite-link">(Kalra &amp; Paddock, 2016)</a><span class="cite-pop"><span class="cite-hd">Kalra &amp; Paddock (2016), Transportation Research Part A</span><span class="cite-q">"…fully autonomous vehicles would have to be driven hundreds of millions of miles and sometimes hundreds of billions of miles to demonstrate their reliability in terms of fatalities and injuries."</span><span class="cite-loc">Findings 본문 (Elsevier 전문 XML로 확인 · 본문·abstract 동일 문장)</span></span></span>. 실주행만으로는 수십에서 수백 년이 걸리므로, 가속·시뮬레이션·시나리오 기반의 <b>대체 검증</b>이 필수적이다. 실제로 자연주행에 드문 위험 상황을 적대적으로 더해 평가를 가속하는 접근이 제안되었다 <span class="cite"><a class="cite-link">(Feng et al., 2021)</a><span class="cite-pop"><span class="cite-hd">Feng et al. (2021), Nature Communications · NADE</span><span class="cite-q">"the NADE could significantly accelerate the evaluation process by multiple orders of magnitude with the same accuracy, comparing with the NDE-based method."</span><span class="cite-loc">본문 (NADE 정의·Results)</span></span></span>.</li>
+    </ul>
+
+    <h4>② 그 대안으로 시나리오 기반·적대적 평가가 표준이 되었다</h4>
+    <ul>
+      <li>시나리오 기반 안전성 평가가 표준 틀로 자리 잡았다 <span class="cite"><a class="cite-link">(Riedmaier et al., 2020)</a><span class="cite-pop"><span class="cite-hd">Riedmaier et al. (2020), IEEE Access</span><span class="cite-q">"an infinite number of different scenarios can theoretically occur in real-world traffic, even…"</span><span class="cite-loc">§II.A Terms and Definitions (본문)</span></span></span>. 여기서 하나의 시나리오는 구체성의 정도에 따라 세 단계로 기술된다. 상황을 자연어로 개념만 적은 단계(functional), 차량 속도·간격 같은 매개변수를 값의 <b>범위</b>로 적은 단계(logical), 그 값을 하나로 <b>고정</b>해 실제로 재현 가능한 한 장면이 된 단계(concrete)다 <span class="cite"><a class="cite-link">(Menzel et al., 2018)</a><span class="cite-pop"><span class="cite-hd">Menzel, Bagschik, Maurer (2018), IEEE IV</span><span class="cite-q">"Functional scenarios depict the most abstract level of scenarios… Logical scenarios depict a detailed representation… Concrete scenarios describe the entities and the relations for…"</span><span class="cite-loc">§II.A–C 본문 정의 (용어는 Ulbrich et al.[5] 등에 기초하나 세 수준 정의는 본 논문)</span></span></span>. 국제표준 <span class="cite"><a class="cite-link">(ISO 34501, 2022)</a><span class="cite-pop"><span class="cite-hd">ISO 34501:2022 · 자동운전 시험 시나리오 용어</span><span class="cite-q">System Under Test (SUT) = "the automated driving system that is tested with test scenarios" (ISO 34501 정의, 문헌 인용 기준)</span><span class="cite-loc">용어 정의</span></span></span> 역시 평가 대상인 자동운전 시스템을 SUT로 정의한다. 뒤에서 다룰 "고정된 한 장면(concrete)은 다른 AV에 그대로 재사용하기 어렵다"는 논점이 여기서 출발한다.</li>
+      <li>위험 상황은 실제 주행 분포(naturalistic driving)에서는 드물게 나타나므로, 최적화·강화학습·생성 모델로 안전 위협 상황을 의도적으로 만들어내는 <b>적대적 시나리오 생성</b>이 급속히 증가했다 <span class="cite"><a class="cite-link">(Ding et al., 2023)</a><span class="cite-pop"><span class="cite-hd">Ding et al. (2023), 안전‑위험 시나리오 생성 서베이</span><span class="cite-q">"We first provide a comprehensive taxonomy of existing algorithms by dividing them into three categories: data-driven generation, adversarial generation, and knowledge-based generation."</span><span class="cite-loc">Conclusion · 분류체계 (본문)</span></span></span> (최신 예 LD-Scene, Peng et al., 2026).</li>
+    </ul>
+
+    <h4>③ 그러나 이 평가 지표들이 "무엇을 재는지"는 거의 따져지지 않았다</h4>
+    <ul>
+      <li>새로운 적대 시나리오 생성 기법을 내놓을 때는, 그것이 <b>얼마나 우수한가</b>(위험한 상황을 잘 만들어 AV를 자주 충돌시키는가)와 거기서 만들어진 각 시나리오가 <b>얼마나 어려운가</b>(그 상황에서 AV가 충돌했는가, 아슬아슬했는가)를 보고하는데, 이 두 가지를 거의 예외 없이 충돌 관련 양(충돌률·빈도)과 대리안전지표(TTC·THW·PET·DRAC)로 측정한다 (대리지표 리뷰: <span class="cite"><a class="cite-link">Wang et al., 2021</a><span class="cite-pop"><span class="cite-hd">Wang et al. (2021), Accident Analysis &amp; Prevention</span><span class="cite-q">"SSM have been widely adopted for quantifying the safety benefits of CAV based on simulation results."</span><span class="cite-loc">§3 (SSM 사용 현황 리뷰, 본문)</span></span></span>; <span class="cite"><a class="cite-link">Tafidis &amp; Pirdavani, 2023</a><span class="cite-pop"><span class="cite-hd">Tafidis &amp; Pirdavani (2023), Traffic Injury Prevention</span><span class="cite-q">"The study's findings demonstrate that SSMs are widely utilized in the safety evaluation of HAVs for different applications."</span><span class="cite-loc">Discussion (본문)</span></span></span>). 최신 SOTA 생성 기법도 <span class="mark">adversarial collision rate를 첫 번째 우수성 지표</span>로 보고한다 (Peng et al., 2026).</li>
+      <li>문제는, 이 지표들이 검증된 측정 도구라서가 아니라 관행적으로 채택되어 왔다는 점이다. 충돌률 같은 값은 사실 <b>두 가지가 뒤섞인 결과</b>다. 하나는 시나리오가 본래 얼마나 어려운가이고, 다른 하나는 그 시나리오를 마침 어떤 AV가 주행했는가이다. 같은 충돌이라도 시나리오가 어려워서 난 것인지 그 AV가 약해서 난 것인지를 충돌률만으로는 가려낼 수 없다. 바로 이 점이 거의 검토되지 않았다.</li>
+    </ul>
+
+    <h4>④ 측정이론은 바로 그 질문, "도구가 무엇을, 누가 재도 똑같이 재는가"를 위해 발전했다</h4>
+    <ul>
+      <li>모든 평가의 본질은 측정이다. "이 도구가 무엇을 재는가, 그리고 누가 재든 같은 값이 나오는가"를 다루는 학문이 측정이론이며, 교육·심리측정 분야에서 한 세기 가까이 발전해 온 학문이다. 그 중심 도구인 문항반응이론(IRT)은 <span class="mark">서로 다른 응시자로 재도 문항 난이도가, 서로 다른 문항으로 재도 응시자 능력이 변하지 않는</span> 표본불변 측정(specific objectivity)을 제공한다 (Rasch, 1960; Lord &amp; Novick, 1968; Embretson &amp; Reise, 2000).</li>
+      <li>이 표본불변성이야말로 ③에서 짚은, 충돌 지표가 갖지 못한 바로 그 성질이다. 최근 IRT는 분류기·회귀·LLM·강화학습 에이전트 평가로도 옮겨와 검증되었다 <span class="cite"><a class="cite-link">(Martínez-Plumed et al., 2019)</a><span class="cite-pop"><span class="cite-hd">Martínez-Plumed et al. (2019), Artificial Intelligence</span><span class="cite-q">"IRT has a dual character in the way that we get information about the items (instances) but also about the respondents (classifiers)."</span><span class="cite-loc">본문 (IRT dual character 설명부 · abstract 아님)</span></span></span>. 그러나 자율주행의 적대적 평가에는 아직 적용된 적이 없다. 본 연구가 채우려는 빈자리가 바로 여기다.</li>
+    </ul>
+    <div class="callout callout--note">
+      <div class="c-title">참고: 측정이론이 최근 AI 평가에서 주목받는 이유</div>
+      <p>IRT가 트랜스포머처럼 주류 기술인 것은 아니다. 다만 모델 <b>평가·벤치마킹</b> 분야에서는 최근 뚜렷이 늘고 있는데, 이유가 셋이다. 첫째, LLM 벤치마크가 너무 커지고 비싸져, 정보량이 큰 문항만 골라 효율적으로 평가하려는 수요가 생겼다(적응형 벤치마킹; <span class="cite"><a class="cite-link">Song &amp; Flach, 2021</a><span class="cite-pop"><span class="cite-hd">Song &amp; Flach (2021), IJIMAI</span><span class="cite-q">"there are various cases where it took only 1 or 2 tests (out of 165 datasets) before the testing sequence reaches the convergence point."</span><span class="cite-loc">§IV Results (본문)</span></span></span>). 둘째, 벤치마크가 포화되거나 데이터 오염으로 신뢰성이 흔들리자, 어떤 문항이 변별력이 없는지·오염됐는지를 IRT로 진단하기 시작했다 <span class="cite"><a class="cite-link">(Zhou et al., 2026, AAAI · PSN-IRT)</a><span class="cite-pop"><span class="cite-hd">Zhou et al. (2026), AAAI · "Lost in Benchmarks?" (PSN-IRT)</span><span class="cite-q">"Through extensive experiments on 12 LLMs across 11 diverse datasets, we demonstrate that current benchmarks often suffer from uneven measurement properties, insufficient difficulty ceilings, item saturation, and data contamination."</span><span class="cite-loc">실험 결과 (본문) · doi 10.1609/aaai.v40i41.40814</span></span></span>. 셋째, 단순 정확도를 넘어 모델 능력을 표본에 덜 휘둘리게, 해석 가능하게 비교하려는 필요다. 그 바탕은 <span class="cite"><a class="cite-link">Martínez-Plumed 외(2019)</a><span class="cite-pop"><span class="cite-hd">Martínez-Plumed et al. (2019), Artificial Intelligence</span><span class="cite-q">"IRT has a dual character in the way that we get information about the items (instances) but also about the respondents (classifiers)."</span><span class="cite-loc">본문 (IRT dual character 설명부)</span></span></span>이고, 알고리즘 포트폴리오로의 확장은 <span class="cite"><a class="cite-link">Kandanaarachchi &amp; Smith-Miles (2023, JMLR)</a><span class="cite-pop"><span class="cite-hd">Kandanaarachchi &amp; Smith-Miles (2023), JMLR</span><span class="cite-q">"We test this framework on algorithm portfolios for a wide range of applications, demonstrating the broad applicability of this method as an insightful algorithm evaluation tool."</span><span class="cite-loc">Conclusion (본문)</span></span></span>가 대표적이다.</p>
+    </div>
+
+    <!-- 2 -->
+    <h2 id="need"><span class="num">2</span>문제와 필요성</h2>
+
+    <div class="panel">
+      <h4 style="margin-top:.1rem;">먼저, 핵심 용어 (시험에 빗대어)</h4>
+      <p>이 연구의 용어는 시험 채점에 그대로 대응한다. 위험 상황을 만들어내는 방법이 <b>생성 기법</b>(출제자)이고, 그것이 만든 하나의 구체적 위험 상황이 <b>시나리오</b>(시험 문항)이며, 평가받는 자율주행 정책이 <b>AV(System Under Test, SUT)</b>(수험생)이다. 그 AV가 시나리오를 주행해 충돌하면 오답, 무사히 지나가면 정답이다.</p>
+      <div class="flow">
+        <div class="flow-box"><b>생성 기법</b><span>위험 상황을 만드는 방법<br>(출제자)</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><b>시나리오</b><span>하나의 위험 상황<br>(시험 문항 · 난이도 <i>b</i>)</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><b>AV (SUT)</b><span>평가 대상 정책이 주행<br>(수험생 · 강건성 <i>θ</i>)</span></div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box"><b>충돌 / 무충돌</b><span>1 / 0<br>(오답 · 정답)</span></div>
+      </div>
+      <p class="note-inline">난이도 <i>b</i> = "시나리오가 얼마나 위험한가", 강건성 <i>θ</i> = "AV가 얼마나 잘 버티는가". 이 연구의 목표는 이 둘을 충돌 결과표에서 함께 측정하되, 어떤 AV로 측정하든 <i>b</i>가 변하지 않게 하는 것이다.</p>
+    </div>
+
+    <p class="lead">충돌률은 시나리오의 난이도가 아니라, 시나리오와 <b>평가 대상 시스템(SUT)</b>이 만나 만들어내는 결과를 측정한다. 그래서 같은 시나리오라도 어떤 AV로 측정하느냐에 따라 난이도와 우수성 비교가 <b>달라진다</b>. 이 문제를 SUT 의존성이라 부른다.</p>
+
+    <h4>SUT 의존성은 반복 확인된다: 성격이 다른 네 갈래가 같은 결론을 가리킨다</h4>
+    <div class="evidence-grid">
+      <div class="ev-card" style="border-top-color:var(--accent)">
+        <div class="ev-tag">① 개념적 정의</div>
+        <div class="ev-body">충돌·위기 기반 지표는 정의상 "어떤 차량이 주행했는가"에 따라 값이 달라진다. 그래서 시나리오의 위험도를 측정한다고 여겨도, 그 값은 실제로 그 시나리오를 주행한 AV가 얼마나 잘 대응했는지에 더 가깝다. <span class="cite"><a class="cite-link">(Ponn 2020)</a><span class="cite-pop"><span class="cite-hd">Ponn et al. (2020), EVER</span><span class="cite-q">"…evaluated with only a moderate complexity of 0.37 … low speed of approximately 20 km/h"</span><span class="cite-loc">§III-B · highD 차량 1034 사례</span></span></span></div>
+      </div>
+      <div class="ev-card" style="border-top-color:var(--blue)">
+        <div class="ev-tag">② 통제 실험</div>
+        <div class="ev-body">시나리오의 난이도를 같게 맞춰 놓고 평가 대상 AV만 바꿨더니, 충돌률이 <span class="ev-num">12.6% → 24.3%</span>로 약 두 배 달라졌다. <span class="cite"><a class="cite-link">(Shen 2025)</a><span class="cite-pop"><span class="cite-hd">Shen et al. (2025), Accident Analysis &amp; Prevention</span><span class="cite-q">"the L2 AVs exhibited the highest collision rate in safety-critical scenarios at 24.3%, while the L4 AVs had a collision rate of 14.1%" · "AMD vehicles achieved the lowest collision rate, at just 12.6%" (긴급도 THW·TTC를 수준 간 매칭한 조건)</span><span class="cite-loc">Fig 5 · Table 4 (§4.1–4.2)</span></span></span></div>
+      </div>
+      <div class="ev-card" style="border-top-color:var(--green)">
+        <div class="ev-tag">③ 순환적 난이도</div>
+        <div class="ev-body">난이도를 "정해진 한 시스템이 그 시나리오에서 얼마나 실패하는가"로 정의한다. 그러면 난이도가 그 특정 시스템의 성능에 매여 버려, 시스템이 바뀌면 난이도도 따라 바뀐다. <span class="cite"><a class="cite-link">(Qiu 2026)</a><span class="cite-pop"><span class="cite-hd">Qiu et al. (2026), Transportation Research Part C</span><span class="cite-q">"under a fixed autonomous driving algorithm of EV, differences in complexity across scenarios arise … independent of the algorithms themselves" (물리 복잡도·알고리즘 성능 일치 91.3%)</span><span class="cite-loc">고정 EV = proprietary Lattice planner · §5</span></span></span></div>
+      </div>
+      <div class="ev-card" style="border-top-color:var(--teal)">
+        <div class="ev-tag">④ SOTA 자기 표</div>
+        <div class="ev-body">최신 생성 기법조차, 같은 시나리오를 평가하는 AV만 바꾸자 충돌률이 <span class="ev-num">41% → 63%</span>로 크게 벌어졌다. 저자 자신의 표에 드러난 결과다. <span class="cite"><a class="cite-link">(LD-Scene, Peng 2026)</a><span class="cite-pop"><span class="cite-hd">Peng et al. (2026), LD-Scene, TR Part C</span><span class="cite-q">Adv-Ego Coll(%) · Lane-Graph 40.75 / PDM-Closed 41.36 / IL 62.88 / IL-Multi 60.94 (같은 생성 결과, ego planner만 교체)</span><span class="cite-loc">Table 4 · §4.7 Transferability</span></span></span></div>
+      </div>
+    </div>
+
+    <h4>왜 해로운가</h4>
+    <div class="evidence-grid">
+      <div class="ev-card" style="border-top-color:var(--red)">
+        <div class="ev-tag">버전 비교가 깨진다</div>
+        <div class="ev-body">AV를 새 버전으로 바꿀 때마다 같은 시나리오의 난이도 값이 달라지면, 버전 사이의 안전성 비교(회귀 시험)가 성립하지 않는다.</div>
+      </div>
+      <div class="ev-card" style="border-top-color:var(--red)">
+        <div class="ev-tag">낮은 충돌률 ≠ 좋은 주행</div>
+        <div class="ev-body">충돌을 피하려 지나치게 보수적으로 달리는(잦은 급제동) AV는 충돌률은 낮아도 뒤차 추돌을 부른다. 낮은 충돌률이 좋은 주행을 뜻하지 않는다. <span class="cite"><a class="cite-link">(Liao 2025)</a><span class="cite-pop"><span class="cite-hd">Liao et al. (2025), Information and Software Technology</span><span class="cite-q">"…a low collision rate … too conservative a driving strategy, such as braking hard frequently, may lead to rear-end collisions" (참가자 30.14%가 포괄적 평가기준 부재 지적)</span><span class="cite-loc">§5.3 Demand 3</span></span></span></div>
+      </div>
+      <div class="ev-card" style="border-top-color:var(--red)">
+        <div class="ev-tag">신뢰성을 보장하기 어렵다</div>
+        <div class="ev-body">충돌은 매우 드문 사건이라, 충돌률·근접도 지표가 실제로 얼마나 믿을 만한지를 이론적으로 보장하기 어렵다. <span class="cite"><a class="cite-link">(Fan 2026, PMCT)</a><span class="cite-pop"><span class="cite-hd">Fan, He, Feng (2026), TR Part C</span><span class="cite-q">"In conclusion, this work proposes a provable safety metric PMCT … PMCT delivers a provable minimum collision time prediction and a provable upper bound of system collision risk."</span><span class="cite-loc">§7 Conclusion (본문)</span></span></span></div>
+      </div>
+      <div class="ev-card" style="border-top-color:var(--red)">
+        <div class="ev-tag">충돌률 ≠ 피해 정도</div>
+        <div class="ev-body">충돌이 적다고 피해가 적은 것도 아니다. 한 연구에서는 충돌률이 더 낮은 시스템이 오히려 중상 확률이 가장 높았다. <span class="cite"><a class="cite-link">(Shen 2025)</a><span class="cite-pop"><span class="cite-hd">Shen et al. (2025), Accident Analysis &amp; Prevention</span><span class="cite-q">"L3 AVs exhibited the highest probability of severe injury in collisions (21.6%)" · "the safety benefits of L2 (90%) and L3 (89%) AVs were nearly identical"</span><span class="cite-loc">Fig 8 · Fig 10 (§4.3–4.4)</span></span></span></div>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <h2 id="aim"><span class="num">3</span>연구 목적</h2>
+    <div class="callout callout--punch">
+      <div class="c-title">목적</div>
+      <p>① 측정이론(IRT 계열)을 AV 적대 평가에 처음 도입해, 시나리오 난이도와 AV 강건성을 <span class="mark">하나의 공통된 척도로 함께 측정한다</span>. 핵심은 이 척도가 측정에 사용한 AV에 따라 달라지지 않는다는 점이다(SUT-불변).<br>② 시험용 IRT에는 없고 자율주행 평가에만 있는 세 가지 특성, 곧 <b>Reactivity</b>(시나리오가 AV의 행동에 반응함)와 <b>Severity-conditioning</b>(위험도를 단계별로 높임)과 <b>Avoidability-weighting</b>(피할 수 있던 충돌만 셈)을 반영한 <b>새 측정 모델</b>을 형식화한다.</p>
+    </div>
+
+    <!-- 4 -->
+    <h2 id="rq"><span class="num">4</span>연구 질문</h2>
+    <div class="callout callout--note">
+      <p><b>RQ1.</b> 단일 충돌률에 기반한 난이도·강건성 순위는 어떤 AV로 측정하느냐에 따라 얼마나 불안정한가?</p>
+      <p><b>RQ2.</b> 제안 모델은 SUT-불변 추정을 제공하는가? 추정된 모수는 보정에 사용한 AV 집단에 얼마나 둔감한가?</p>
+      <p><b>RQ3.</b> 세 구조를 반영하면 단순 IRT 대비 모델 적합도와 순위 안정성이 얼마나 개선되는가?</p>
+    </div>
+
+    <!-- 5 -->
+    <h2 id="novelty"><span class="num">5</span>신규성과 기여</h2>
+    <div class="grid2">
+      <div class="panel">
+        <h4>신규성 (범위를 정확히)</h4>
+        <ul>
+          <li>"AI 평가에 IRT를 처음 쓴다"는 주장은 성립하지 않는다. IRT는 이미 분류기·LLM 등 여러 AI 평가에 적용되어 왔다. 방어 가능한 주장은 <span class="mark">closed-loop·적대 자율주행 평가에 측정이론을 처음 적용 + 세 구조 모델</span>이다.</li>
+          <li>우리와 가장 가까운 선행 연구(policy-agnostic difficulty를 학습한 Bronstein 외 2023, IRT를 강화학습 에이전트에 적용한 Dual Indicators 2020)는 본문에서 반드시 인용하고 차이를 분명히 한다(8절 참조).</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h4>기여</h4>
+        <ul>
+          <li><b>C1</b> SUT 의존성을 개념·통제실험·순환·SOTA의 네 각도로 정리하고 측정이론 언어로 정식화한다.</li>
+          <li><b>C2</b> 반응성·severity 조건화·avoidability를 반영한 IRT 계열 측정 모델을 제안한다.</li>
+          <li><b>C3</b> 표준·단순 생성 기법과 다수 AV에서 제안 척도의 순위 안정성이 단일 충돌률보다 우월함을 보이고, 목표 신뢰도에 필요한 AV·시나리오 수를 추정하는 분석(decision study)을 제시한다.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 6 -->
+    <h2 id="approach"><span class="num">6</span>접근 개요</h2>
+    <p class="lead">여러 AV에게 여러 시나리오를 주행시키면, 어떤 AV가 어떤 시나리오에서 충돌했는지(1)와 충돌하지 않았는지(0)를 적은 표가 만들어진다. 이 표는 시험 채점표와 같다. 행은 AV(수험생), 열은 시나리오(문항), 각 칸은 충돌 여부(정답·오답)다. 시험에서 채점표 하나로 문항의 난이도와 학생의 실력을 함께 추정하듯, 이 표에서 시나리오의 난이도와 AV의 강건성을 동시에 추정한다. 이렇게 얻은 난이도는, 모형이 맞다면, 측정에 어떤 AV들을 썼는지가 달라져도 값이 변하지 않는다. 충돌률처럼 "누가 쟀느냐"에 흔들리지 않는 것, 그것이 우리가 말하는 SUT-불변성이다.</p>
+
+    <h4>왜 시험용 IRT를 그대로 쓸 수 없는가</h4>
+    <p>시험용 IRT는 세 가지를 당연하게 전제한다. 문항이 고정돼 있고, 응시는 한 번뿐이며, 실력은 하나의 숫자로 나타낼 수 있다는 것이다. 자율주행 적대 평가에서는 이 세 전제가 모두 어긋난다. 그래서 시험에는 없고 자율주행 평가에만 있는 아래 세 가지 특성을 모델에 반영한다. 다만 이 셋이 정말 도움이 되는지는 미리 단정하지 않고, 기본 모형에 한 가지씩 더해 가며 각각이 정확도와 순위 안정성을 실제로 높이는지 확인한다(RQ3).</p>
+
+    <div class="panel">
+      <h4 style="margin-top:.1rem;color:var(--accent)">Reactivity <span class="note-inline">(시나리오가 AV의 행동에 반응함)</span></h4>
+      <p style="margin:.3rem 0;">적대 시나리오에서 주변 차량들은 미리 정해진 경로를 그대로 따르지 않는다. AV가 어떻게 움직이는지를 보고 거기에 맞춰 위협을 가한다. 정해진 채 가만히 있는 시험 문제가 아니라, 내 수에 맞받아치는 대련 상대에 가깝다. 그래서 똑같은 출발 조건에서 시작해도 어떤 AV가 주행하느냐에 따라 결과가 달라진다.</p>
+      <p style="margin:.3rem 0;">이렇게 만들어진 한 번의 주행 결과만 보고 난이도를 매기면, 그 값에는 시나리오의 위험도와 그 AV의 대응 능력이 섞여 버린다. 그래서 난이도를 한 번의 주행이 아니라, 그런 상황을 만들어내는 <b>생성 기법 자체의 성질</b>로 정의한다. AV에 따라 달라지는 부분은 같은 시나리오를 여러 AV로 여러 번 돌려 평균 내어 걷어낸다.</p>
+    </div>
+
+    <div class="panel">
+      <h4 style="margin-top:.1rem;color:var(--accent)">Severity-conditioning <span class="note-inline">(위험도를 단계별로 높일 수 있음)</span></h4>
+      <p style="margin:.3rem 0;">하나의 생성 기법으로 위험도를 조금씩 높여갈 수 있다. 시험 문항이 저마다 고정된 난이도 하나를 갖는 것과 다르다. 그래서 난이도를 숫자 하나로 뭉뚱그리는 대신, 위험도를 높일수록 AV의 충돌 위험이 어떻게 올라가는지를 곡선으로 본다.</p>
+      <p style="margin:.3rem 0;">그러면 각 AV를 "위험도를 어느 수준까지 견디는가"라는 한 숫자로 요약할 수 있다. 모델에서는 난이도를 위험도에 따라 커지는 함수로 두고, AV의 강건성을 점 하나가 아니라 곡선으로 추정한다.</p>
+    </div>
+
+    <div class="panel">
+      <h4 style="margin-top:.1rem;color:var(--accent)">Avoidability-weighting <span class="note-inline">(피할 수 있던 충돌만 셈)</span></h4>
+      <p style="margin:.3rem 0;">충돌에는 시스템이 피할 수 있었던 것과, 누구도 피할 수 없는 것(예: 정지한 AV를 뒤차가 들이받는 경우)이 섞여 있다. 누구도 못 피하는 충돌의 비율은 시나리오마다 다르므로, 이를 그대로 세면 강건성 점수가 시나리오 구성에 휘둘린다.</p>
+      <p style="margin:.3rem 0;">그래서 피할 수 있었던 충돌만 AV의 실력에 반영한다. 모델에서는 누구도 피할 수 없는 충돌의 몫을 RSS 같은 안전 규칙으로 가려내 떼어내고, 나머지만 강건성에 반영한다.</p>
+    </div>
+
+    <p class="note-inline">세 가지 중에서는 위험도 조건화가 가장 중요하고, 회피가능성은 보조, 반응성은 전제 역할이다. 회피가능성은 RQ3에서 효과가 작게 나오면 본 모델에서 빼고 확장으로 돌릴 수 있다. 구체적인 수식과 식별성은 별도의 방법 정리에서 다룬다.</p>
+
+    <!-- 7 -->
+    <h2 id="scope"><span class="num">7</span>범위 · 가정 · 경계</h2>
+    <ul>
+      <li>"AV가 바뀌어도 척도가 변하지 않는다"는 주장의 적용 범위는 <b>하나의 생성 기법이 위험도를 변화시켜 만든, 성격이 일관된 시나리오 집합</b> 안으로 한정하고, 그 안에서 강건성을 하나의 숫자(1차원)로 나타낼 수 있다는 가정이 맞는지 검정한다. 성격이 크게 다른 시나리오 집합들 사이의 다차원성은 한계로 명시하고, 다차원 IRT(MIRT)를 향후 확장으로 둔다.</li>
+      <li>저충실도 시뮬레이터(예: highway-env) 사용은 정당하다. 기여가 <b>측정 원리 수준</b>이라 시뮬레이터에 무관하며, 표준적이고 단순한 생성 기법으로 결과의 일반성을 보인다.</li>
+      <li>컴퓨팅 제약이 없으므로 AV × 시나리오 × 위험도 격자를 키워 통계적 검정력을 확보한다.</li>
+      <li>시나리오 생성 기법은 ACARL을 재활용하지 않고 <b>처음부터 단순·표준(IDM/MOBIL 기반)</b>으로 새로 만든다. 측정 모델이 이 연구의 핵심임을 분명히 하기 위해서다.</li>
+    </ul>
+
+    <!-- 8 -->
+    <h2 id="position"><span class="num">8</span>관련 연구 위치</h2>
+    <ul>
+      <li><b>Ponn · Qiu · Shen</b> = SUT 의존성에 대한 부분적 임시방편(결과를 버림 / 단일 EV 고정 / 시나리오 매칭 재실행). 우리는 이 세 가지를 동시에 해결한다.</li>
+      <li><b>가장 가까운 선행과의 차별</b>: <span class="cite"><a class="cite-link">Bronstein et al. (2023)</a><span class="cite-pop"><span class="cite-hd">Bronstein et al. (2023), CoRL / PMLR · Waymo</span><span class="cite-q">"…the model learns the inherent, policy-agnostic difficulty of a scenario because it is trained on multiple development planners in different geographic regions…"</span><span class="cite-loc">§3 (difficulty model의 이점)</span></span></span>은 여러 플래너에 걸쳐 학습한 policy-agnostic difficulty를 제안하지만, 이는 속을 들여다볼 수 없는 예측 모델로 난이도를 매길 뿐, 난이도와 강건성을 하나의 공통 척도에 함께 올리지 않고 세 구조도 없다. <span class="cite"><a class="cite-link">Martínez-Plumed &amp; Hernández-Orallo (2020)</a><span class="cite-pop"><span class="cite-hd">Martínez-Plumed &amp; Hernández-Orallo (2020), IEEE T-Games · Dual Indicators</span><span class="cite-q">"…the ICCs of those three most (and least) difficult ALE and GVGAI games with positive discrimination." (IRT의 난이도·변별력을 Atari ALE·GVGAI 게임에 적용)</span><span class="cite-loc">§V Results (ALE·GVGAI 분석, 본문)</span></span></span>은 IRT를 AI 벤치마크·에이전트(Atari 등)에 적용한 최근접 선행이지만 정적 과제 평가이지 closed-loop 적대 주행이 아니다. <span class="cite"><a class="cite-link">Zhao et al. (2024, TIAV)</a><span class="cite-pop"><span class="cite-hd">Zhao et al. (2024), arXiv · TIAV (VUT-centered)</span><span class="cite-q">"We demonstrate such capability by modifying the anticipation to the VUT's cost-based strategy and thus achieve multiple testing scenarios with explainable background traffic evolution."</span><span class="cite-loc">방법·결과 (본문, VUT 중심 상호작용)</span></span></span>는 시나리오가 시험 차량(VUT)에 묶여 달라짐을 보여 우리 SUT-의존 동기를 뒷받침하나, 측정 모델이 아니라 시뮬레이션 프레임워크다. <b>우리는 측정이론으로 난이도·강건성을 SUT-불변 공통 척도에 함께 올리고 세 구조를 형식화한다는 점에서 모두와 구분된다.</b></li>
+    </ul>
+
+    <p class="callout--plain">관련 문헌은 두 곳에 정리한다. 원고에 인용할 요약은 <a href="lit-review.html">문헌 검토</a>에, 연구를 설계·수행하기 위해 끝까지 정독한 정리는 <a href="review/index.html">Literature Review</a>에 둔다.</p>
+
+    <div class="footer">
+      AAAI 연구 계획 · 최종 갱신 2026-06-01
+    </div>
+
+  </main>
+</div>
+<script src="assets/app.js"></script>
+</body>
+</html>

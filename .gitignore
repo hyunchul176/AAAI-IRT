@@ -1,0 +1,52 @@
+# =============================================
+# AAAI SUT-invariant measurement research repo
+# .gitignore for public GitHub mirror (Pages)
+# =============================================
+
+# External library clones (SafeBench/FREA — separate git history, not ours)
+external/
+
+# Source PDFs (external papers, copyright)
+pdfs/
+
+# Handoff staging (transcripts, memory copies, skill files for migration)
+_handoff/
+
+# bkit audit logs (operational)
+.bkit/
+
+# Editor config
+.vscode/
+
+# D-study sweep artifacts (large JSON + log; replaced by generated PNGs/tables in research/)
+analysis/d-study/d_study_results.json
+analysis/d-study/sweep.log
+analysis/d-study/__pycache__/
+
+# Other analysis sweep artifacts that may grow large
+analysis/**/*.log
+analysis/**/sweep_*.json
+
+# Python cache / build
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Anything that looks like a secret
+*.env
+*research_keys*
+*.pem
+*.key
+
+# Review figures extracted from external papers — user opted to include for full
+# rendering of lit-review pages on GitHub Pages. Treat as fair-use academic excerpts.
+# research/review/images/

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D-study 결과 · AAAI SUT-불변 측정</title>
+<link rel="stylesheet" href="assets/style.css">
+<script>(function(){try{var t=localStorage.getItem('theme')||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="kicker">AAAI · Main Track</div>
+      <h1>AV 적대 평가의<br>SUT-불변 측정</h1>
+      <div class="sub">D-study 결과 (Decision Study)</div>
+    </div>
+
+    <button class="theme-toggle" type="button" style="margin-top:0;">☾ 다크 모드</button>
+
+    <nav class="site-nav">
+      <a href="index.html"><span class="ic">◆</span> 연구 개요</a>
+      <a href="plan.html"><span class="ic">▣</span> 연구 계획 (Plan)</a>
+      <a href="method.html"><span class="ic">∑</span> 방법 형식화 (Method)</a>
+      <a href="roadmap.html"><span class="ic">▶</span> 수행 로드맵 (Roadmap)</a>
+      <a href="decisions.html"><span class="ic">✦</span> 결정 로그 (Decisions)</a>
+      <a href="d-study.html" class="active"><span class="ic">◎</span> D-study 결과</a>
+      <a href="review/index.html"><span class="ic">▤</span> Literature Review</a>
+      <a href="questions-log.html"><span class="ic">✎</span> 질의 로그 · PDF 요청</a>
+    </nav>
+
+    <div class="toc-label">이 페이지 목차</div>
+    <ul class="toc">
+      <li><a href="#purpose">D-study가 답하는 질문</a></li>
+      <li><a href="#design">격자 후보와 합격 판정</a></li>
+      <li><a href="#result">결과 요약</a></li>
+      <li><a href="#sev">severity 배치 비교</a></li>
+      <li><a href="#ablation">ablation</a></li>
+      <li><a href="#budget">시간 예산과 본 격자 권고</a></li>
+      <li><a href="#risks-answered">잔여 위험 R-A부터 R-G까지 답</a></li>
+      <li><a href="#next">다음 단계 (B 단계 진입)</a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+
+    <header class="hero">
+      <div class="kicker">Decision Study · Stage A 합성 결과</div>
+      <h1>격자 규모와 보완책의 D-study 결과</h1>
+      <p class="one-liner">진짜 CARLA 격자에 들어가기 전에 합성 모의로 "AV 몇 × 생성기 몇 × severity 몇 × 셀당 반복 몇이면 시나리오 난이도 b̂이 안정적으로 추정되는가"를 정한 결과를 모았다. <span class="mark">이 페이지는 한 줄로 답한다. (i) 어떤 격자 후보들이 합격 판정을 통과했는가, (ii) 합격 격자에서 정보적 사전·적응 배치·셀당 반복 중 무엇이 가장 떠받치는가, (iii) 4080 한 대로 그 격자를 채우는 데 얼마가 걸리는가.</span> 결정 자체와 그 근거·잔여 위험은 <a href="decisions.html">결정 로그</a> D-03부터 D-10·R-A부터 R-G에 적혀 있고, 이 페이지는 그 결정으로 돌린 sweep의 답을 정리한다.</p>
+    </header>
+
+    <h2 id="purpose">D-study가 답하는 질문</h2>
+    <p>측정학에서 D-study(Decision Study)는 진짜 측정을 시작하기 전에 측정 설계의 크기를 합성 모의로 정하는 표준 절차다. 시험 비유로 풀면, 시험을 치르기 전에 "문항을 몇 개 출제하고 응시자를 몇 명 부르며 한 문항을 몇 번 풀게 해야 실력 차이를 신뢰할 만큼 가를 수 있는가"를 합성 데이터로 미리 계산해 보는 일이다. 너무 작은 시험지는 응시자 능력을 분리하지 못하고(우리에겐 b̂이 응시자 집단마다 흔들림), 너무 큰 시험지는 계산 낭비라 그 사이 적정값을 찾는 게 D-study의 목적이다.</p>
+    <p>우리 D-study는 method.html 식 (6)의 측정 모델로 합성 응답을 생성한 뒤 MAP 적합으로 복원해, 격자 후보(AV 4·6·8 × G 3·4·5 × severity 3·5·7 × 셀당 반복 10·20·30) 각각에서 네 지표를 1000 trial로 분포 추정했다. 주 기준은 split-half b̂ Pearson r의 분포, 합격 판정은 그 분포의 25 percentile이 0.80을 넘는지로 정했다(<a href="decisions.html#d03">D-03</a>·<a href="decisions.html#d04">D-04</a>). 격자 후보 81개 × severity 배치 2종(등간격·Fisher 적응)으로 총 162 조합을 32 코어 multiprocessing으로 sweep하고, 합격 격자에서 ablation으로 정보적 사전·적응 배치·셀당 반복을 한 번씩 꺼 무엇이 b̂ 안정성을 떠받치는지 분해했다.</p>
+
+    <h2 id="design">격자 후보와 합격 판정</h2>
+    <p>격자 후보 범위는 <a href="decisions.html#d05">D-05</a>가 정한 대로 AV 4·6·8 (응시자 = AV planner)·G 3·4·5 (출제자 = 적대 시나리오 생성기)·severity 3·5·7 (난이도 수준)·셀당 반복 10·20·30이다. AV=12는 현재 SafeBench·FREA의 AV planner 풀로 미확보라 본 후보에서 빼고 확장 옵션으로만 두었고, 셀당 반복 5는 셀 비율 자체의 분산이 너무 커서 빼고 10에서 시작했다.</p>
+    <p>합격 판정 식은 무작위 AV split 50회 + 무작위 scenario split 50회의 b̂ Pearson r 분포에서 25 percentile(분포의 하사분위)이 합격선 r ≥ 0.80을 넘는지로 정한다(<a href="decisions.html#d04">D-04</a>). 평균 r이 아니라 분포 하단을 보는 이유는, 격자가 충분한 정보를 주려면 우연한 split에서도 합격선 아래로 떨어지지 말아야 하기 때문이다. AV가 작은 격자(AV &lt; 6)는 무작위 AV split이 사실상 검정력이 없어 AV-split 합격 판정에서는 제외하고 scenario-split 결과와 θ̂ CI 폭으로만 평가한다(<a href="decisions.html#risks">R-B</a>).</p>
+
+    <h2 id="result">결과 요약</h2>
+    <div class="callout callout--note">
+      <div class="c-title">결과 표 (sweep 완료 후 채움)</div>
+      <p>81 격자 후보 × 2 severity 배치 = 162 조합 각각의 split r 분포(평균·25 percentile·5 percentile·95 percentile), 평균 |Δb̂|, Mantel-Haenszel DIF 평균·DIF α=0.05 비율, θ̂ CI 폭 평균, 본 b̂ 복원 r, 합격 여부를 한 표로 정리한다. 결과 JSON은 <code>analysis/d-study/d_study_results.json</code>에서 가져오고 PNG 그림은 <code>research/assets/d-study/</code>에 저장한다.</p>
+    </div>
+    <p><b>중간 진행 관찰</b>(sweep 진행 중 추가, 본 결과 완성 후 갱신): sweep이 절반에 도달한 시점에 AV=4·AV=6 격자 모두 split r의 25 percentile이 0.85~0.94 범위로 합격선 0.80을 통과했다. 이는 격자 후보 대부분이 합격한다는 강한 신호이고, 본문 핵심 그림이 "ablation 곡선"이 아니라 <b>"격자 예산 표"</b>가 될 가능성이 높다(<a href="decisions.html#d05">D-05</a>의 R-A 정면 대응 후자 시나리오). 정확한 진단과 AV=8 격자 결과는 sweep 완료 시점에 본 결과 단락으로 갱신한다.</p>
+
+    <h2 id="sev">severity 배치 비교 (등간격 vs Fisher 적응)</h2>
+    <p>severity 배치는 등간격(uniform)과 Fisher 정보 기반 적응(adaptive) 두 안을 함께 비교했다(<a href="decisions.html#d05">D-05</a>). 적응 배치는 각 (AV, G) 쌍의 c50 분포 percentile에 severity 수준을 모으는 안이고, 같은 신뢰도를 더 작은 격자로 줄 가능성이 직접 근거(섹션 A의 Song & Flach 2021 Table III에서 Fisher 선택이 한두 문항 만에 수렴)에서 나왔다.</p>
+    <div class="callout callout--note">
+      <div class="c-title">그림 자리: severity 배치 두 안의 split r 분포 비교</div>
+      <p>같은 격자 후보 위에서 등간격과 적응 배치의 split r 분포를 함께 그리고, 적응이 같은 합격 판정을 얼마나 더 작은 격자로 달성하는지를 한 줄 표로 정리한다.</p>
+    </div>
+
+    <h2 id="ablation">ablation (사전 끄기·적응 끄기·반복 절반)</h2>
+    <p>ablation은 D-study가 합격 판정을 가까스로 통과한 가장 작은 격자(또는 AV=8 한 점)에서 정보적 사전(설명적 IRT의 w·x + 잔차)·Fisher 적응 배치·셀당 반복의 세 보완책을 하나씩 꺼 비교한다(<a href="decisions.html#d05">D-05</a>). 모든 격자가 자연 합격하면 ablation은 본문 부수 그림이 되고, 일부만 합격하면 ablation 곡선이 본문 핵심 그림으로 올라간다(<a href="decisions.html#risks">R-A</a>의 본문 단락 초안 두 시나리오).</p>
+    <div class="callout callout--note">
+      <div class="c-title">그림 자리: ablation의 split r 분포 변화</div>
+      <p>합격 격자에서 (사전 on/off, 적응 on/off, 반복 K/2) 각 변종의 split r 분포를 한 자리에 그리고, 어느 보완책이 가장 무겁게 b̂ 안정성을 떠받치는지를 본문 한 줄로 풀어 적는다.</p>
+    </div>
+
+    <h2 id="budget">시간 예산과 본 격자 권고</h2>
+    <p>4080 한 대로 합격 격자를 채우는 wall-clock 시간은 격자 셀 수와 동시 도커 인스턴스 수의 곱이다(<a href="decisions.html#d09">D-09</a>·<a href="decisions.html#risks">R-G</a>). 셀당 wall-clock은 SafeBench의 max_episode_step·fixed_delta_seconds 곱(시뮬레이션 시간 30초 하한)에 traffic·렌더링 overhead가 더해진 실측이라 B 단계 첫 pilot 측정 전에 단정할 수 없으나, sweep의 합격 격자가 결정되면 격자 후보별 예상 시간 범위를 표로 정리한다.</p>
+    <div class="callout callout--note">
+      <div class="c-title">표 자리: 합격 격자별 시간 예산</div>
+      <p>각 합격 격자의 셀 수 = AV × G × severity × 반복, 셀당 wall-clock 가정(pilot 측정값), 동시 도커 인스턴스 가정(R-G의 pilot 측정값), 총 wall-clock을 한 표로 정리해 본 격자 한두 개를 권고한다.</p>
+    </div>
+
+    <h2 id="risks-answered">잔여 위험 R-A부터 R-G까지가 D-study에서 어떻게 답해졌나</h2>
+    <p>결정 로그가 정의한 잔여 위험 일곱 가지 중 D-study가 직접 답할 수 있는 것은 R-A·R-B이고 나머지는 B 단계로 넘어간다.</p>
+    <p><b>R-A (AV=8조차 IRT 표본 관행에서 작음)</b>: sweep 중간 진행이 모든 AV 격자가 합격선을 통과하는 그림을 그리고 있어 R-A가 자연 해소되는 시나리오로 굳어진다(본 결과 완성 후 확정). 본문은 격자 예산 표를 핵심 그림으로 가져가고 ablation은 부수 그림이 된다. <b>R-B (AV가 작은 격자 split 검정력 부족)</b>: AV=4 격자가 AV-split 판정에서 빠지는 D-04 방침을 sweep 결과로 직접 확인한다(예상: AV=4 격자에서 MH DIF α=0.05 거짓 발견 비율이 매우 높게 나옴, sanity check에서 60%로 관찰).</p>
+    <p>R-C부터 R-G까지는 B 단계 pilot에서 답한다. <b>R-C (AV 강건성 분산 부족)</b>는 SafeBench RL 4종 + 규칙 기반 2종 + PlanT 2종을 섞은 뒤 pilot 충돌률 표준편차 ≥ 0.1을 점검, <b>R-D (severity 단조성 깨짐)</b>는 (AV, G) 쌍 충돌률 vs c의 Spearman ρ ≥ 0.7 부트스트랩 5 percentile 하한 점검, <b>R-E (u 분포 쏠림)</b>는 RSS 라벨링 후 u 히스토그램 점검, <b>R-F (BEV 디스크 폭증)</b>는 한 셀 BEV 비용 측정 후 저장 모드 좁힘, <b>R-G (도커 인스턴스 수)</b>는 CARLA 0.9.13 한 인스턴스 VRAM 점유 측정 후 격자 후보 추가 좁힘.</p>
+
+    <h2 id="next">다음 단계 (B 단계 진입)</h2>
+    <p>D-study 결과가 본 격자 한두 개를 권고하면 그 격자가 곧 우리 CARLA 격자의 크기가 된다. 이어지는 B 단계는 결정 로그 D-01·D-06·D-07·D-08·D-09·D-10이 적은 인프라(SafeBench + FREA 도커 + 체크포인트 6종 재현·다운로드 + B4 응답 어댑터 + BEV wrapper + Town·시드·timeout 정책)를 한 자리에 세우는 작업이다. B 단계 첫 작업은 도커 이미지를 띄워 한 셀 rollout의 wall-clock과 한 인스턴스 VRAM 점유를 측정하는 일(<a href="decisions.html#risks">R-F·R-G</a> 답)이고, 그 결과가 격자 wall-clock 예산을 확정한다. 그 다음 R-C·R-D·R-E pilot을 거쳐 본 격자 실행으로 들어간다.</p>
+
+  </main>
+
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
