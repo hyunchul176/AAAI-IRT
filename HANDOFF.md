@@ -104,16 +104,25 @@ private 전환 + Pro plan에서 private Pages 호스팅.
 
 ## 다음 할 일
 
-1. **B 단계 첫 작업: SafeBench 도커 + 한 셀 pilot** (결과 파일 디스크 폭증 위험과 GPU 동시 실행 인스턴스 수 위험 측정).
-   SafeBench `bash external/SafeBench/docker/run_docker.sh`로 `safebench/safebench` 이미지 띄움
-   (Docker Hub에 있는지 확인, 없으면 `docker build -t safebench/safebench external/SafeBench/docker/`).
-   한 셀 rollout으로 wall-clock과 한 인스턴스 VRAM 점유 측정 → 본 격자 셋(540/2,400/3,200 cells)
-   중 한 개를 권고로 좁힘. 이미 확인: docker 29.3.0 ✓, nvidia-container-toolkit ✓, RTX 4080 16GB ✓.
-2. **B 단계 본격**: SafeBench·FREA 체크포인트 재현·다운로드(SAC·LC만 동봉, DDPG·PPO·TD3 +
-   AdvSim·AdvTraj·NF 직접 학습 필요, PlanT 본체 Google Drive 695 MB), B4 파이프라인
-   stub 본문 채움(sb_to_response·bev_wrapper·rss_labeler), 강건성 분산·severity 단조성·u 분포 pilot.
-3. **C 단계 격자 실행**: 본 격자 위에 SafeBench 도커 병렬로 응답표 수집.
-4. **D 단계 검증**: D1(순위 역전 재현)·D2(표본불변, 본문 핵심)·D3(ablation)·D4(외적 타당성).
+1. **(진행 중)** SafeBench 적대 생성기 자체 학습 (sb-pilot, LC→NF 직렬).
+   `bash analysis/b4-pipeline/train_safebench_serial.sh`가 host 백그라운드(PID 2615889)에서
+   LC 학습 완료를 polling 중. LC 약 26%·ETA 1:14. 완료 시 NF 학습 자동 시작.
+   AdvSim·AdvTraj는 HardCodePolicy(`type='unlearnable'`) + parameters JSON 생성 절차 미공개
+   → 격자에서 제외(`decisions.html` #d07 2026-06-03 갱신).
+2. **단조성 pilot 2차**: LC·NF 학습 완료 후 `python3 analysis/b4-pipeline/pilot_monotonic_v2.py`로
+   2 ego(SAC, behavior) × 2 G(LC, NF) × c 5수준 × K=10 = 200 cells 실행. `severity_injectors`의
+   `SEVERITY_MAP['lc']` (sigma_scale 다이얼) + `SEVERITY_MAP['nf']` (flow_sigma=latent z 분산
+   다이얼) 1차 후보를 monkey-patch로 검증. Spearman ρ ≥ 0.7 합격선·bootstrap 5%-low ≥ 0.5 보조.
+   1차 가설 실패 시 가설 2(σ 반전)로 재시도. 두 가설 모두 실패하면 `method.html` 식 (6)의
+   γ_G·c 비단조 일반화로 후퇴.
+3. **본 격자 진입 조건**: 두 종 이상이 단조성 합격해야 split-half에서 G 부분집합 가르는
+   표본불변성 검증이 의미를 갖는다(검토자 라운드 10). G=2 (LC+ordinary 또는 NF+ordinary) 한 종 합격은
+   contribution이 "한 생성기 사례연구"로 좁아져 진입 보류.
+4. **C 단계 격자 실행**: G=3 (LC+NF+ordinary) 단조성 합격 시 본 격자 실행. AV=6은 SAC + DDPG +
+   PPO + TD3 + PlanT + behavior (라운드 9에서 expert·expert_disturb 제외). DDPG·PPO·TD3는
+   학습 필요(load_model이 episode=None일 때 graceful 검색이라 patch 불필요).
+5. **D 단계 검증**: D1(순위 역전 재현)·D2(표본불변 = 본문 핵심, `analysis/d-grid-validation/d2_split_half.py`)·
+   D3(ablation)·D4(외적 타당성 = expert reference policy 충돌률 분포 비교).
 5. **E 단계 원고**: AAAI 메인 트랙 형식.
 
 ## 작업 규칙 (CLAUDE.md가 원본, 자주 틀리는 것만 재강조)

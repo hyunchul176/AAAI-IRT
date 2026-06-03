@@ -21,19 +21,24 @@ from scipy import stats
 
 
 def summarize(path: str) -> dict:
+    """pilot v1 (fppo_adv 한 G만, key=(ego, c)) + v2 ((ego, G, c) 3차원) 둘 다
+    지원한다. v1 결과에는 cell.g_id가 'fppo_adv'로 고정되어 있고 v2 결과는
+    여러 G를 갖는다. 출력은 (ego, g, c) 3차원 dict로 통일.
+    """
     d = json.load(open(path))
-    by_ego_c: dict[tuple[str, float], list[float]] = defaultdict(list)
+    by_ego_g_c: dict[tuple[str, str, float], list[float]] = defaultdict(list)
     fails: list[dict] = []
     for r in d["results"]:
         c = r["cell"]
         ego = c["ego"]
+        g_id = c.get("g_id", "fppo_adv")  # v1은 cell에 g_id 없음 → fppo_adv
         cval = c["c_value"]
         cr = r.get("collision_rate")
         if cr is None:
             fails.append(c)
             continue
-        by_ego_c[(ego, cval)].append(float(cr))
-    return dict(by_ego_c=by_ego_c, n_fails=len(fails),
+        by_ego_g_c[(ego, g_id, cval)].append(float(cr))
+    return dict(by_ego_g_c=by_ego_g_c, n_fails=len(fails),
                 wall_sec=d.get("wall_sec"), total=d.get("n_cells"))
 
 
@@ -85,14 +90,16 @@ def main() -> None:
           f"{s['n_fails']} failed")
     print()
 
-    # ego별 그룹
-    by_ego: dict[str, dict[float, list[float]]] = defaultdict(lambda: defaultdict(list))
-    for (ego, c), rates in s["by_ego_c"].items():
-        by_ego[ego][c] = rates
+    # (ego, g) 쌍별로 c × rates 그룹
+    by_eg: dict[tuple[str, str], dict[float, list[float]]] = defaultdict(lambda: defaultdict(list))
+    for (ego, g, c), rates in s["by_ego_g_c"].items():
+        by_eg[(ego, g)][c] = rates
 
-    for ego in sorted(by_ego):
-        print(f"=== ego = {ego} ===")
-        by_c = by_ego[ego]
+    n_pass = 0
+    n_total = len(by_eg)
+    for (ego, g) in sorted(by_eg):
+        print(f"=== (ego={ego}, G={g}) ===")
+        by_c = by_eg[(ego, g)]
         for c in sorted(by_c):
             rates = by_c[c]
             mean = sum(rates) / len(rates)
@@ -105,8 +112,23 @@ def main() -> None:
         print(f"  Spearman ρ = {rho:.3f} (p={p:.3f}), bootstrap 5%-low = {p5:.3f}")
         flag = "PASS" if rho >= 0.7 else "FAIL"
         flag_low = "PASS" if p5 >= 0.5 else "FAIL"
+        passed = (rho >= 0.7)
+        if passed:
+            n_pass += 1
         print(f"  → ρ ≥ 0.7: {flag},  bootstrap p5 ≥ 0.5: {flag_low}")
         print()
+
+    print(f">> 합격 (ego, G) 쌍: {n_pass}/{n_total}")
+    # 본 격자 진입 두 종 합격 조건은 G 단위에서 본다(같은 G가 어느 ego에서도
+    # 합격하면 그 G는 1 종 합격으로 카운트). 검토자 라운드 10 권고.
+    g_pass: dict[str, bool] = defaultdict(bool)
+    for (ego, g) in sorted(by_eg):
+        by_c = by_eg[(ego, g)]
+        rho, _, _ = spearman_monotonic(by_c)
+        if rho >= 0.7:
+            g_pass[g] = True
+    n_g_pass = sum(1 for v in g_pass.values() if v)
+    print(f">> 합격 G 종 수: {n_g_pass} (본 격자 진입 조건: ≥ 2)")
 
 
 if __name__ == "__main__":
