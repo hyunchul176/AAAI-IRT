@@ -31,12 +31,14 @@ TOWN02_ROUTES: list[tuple[int, int]] = [
     (12,  80), (13,  90), (14, 100), (15, 110), (16, 120),
     (20, 130), (21, 140),
 ]
+EGOS = ["expert", "expert_disturb"]
 C_LEVELS = [0.0, 1.0, 2.0, 3.0, 4.0]
-K_REPS = 5
+K_REPS = 10
 
 
 @dataclass(frozen=True)
 class PilotCell:
+    ego: str
     c_value: float
     trial_k: int
     sid: int
@@ -45,28 +47,35 @@ class PilotCell:
 
     @property
     def exp_name(self) -> str:
-        return f"pilotmono_c{self.c_value:.1f}_k{self.trial_k:02d}_r{self.rid}d{self.data_id}"
+        return f"pilotmono_{self.ego}_c{self.c_value:.1f}_k{self.trial_k:02d}_r{self.rid}d{self.data_id}"
 
 
 def iter_pilot_cells() -> Iterable[PilotCell]:
-    for c in C_LEVELS:
-        for k in range(K_REPS):
-            rid, base_did = TOWN02_ROUTES[k % len(TOWN02_ROUTES)]
-            # 같은 route 안에서 k에 따라 data_id를 약간 이동
-            data_id = base_did + (k // len(TOWN02_ROUTES))
-            yield PilotCell(
-                c_value=c, trial_k=k,
-                sid=9, rid=rid, data_id=data_id,
-            )
+    for ego in EGOS:
+        for c in C_LEVELS:
+            for k in range(K_REPS):
+                rid, base_did = TOWN02_ROUTES[k % len(TOWN02_ROUTES)]
+                # 같은 route 안에서 k에 따라 data_id를 약간 이동
+                data_id = base_did + (k // len(TOWN02_ROUTES))
+                yield PilotCell(
+                    ego=ego, c_value=c, trial_k=k,
+                    sid=9, rid=rid, data_id=data_id,
+                )
 
 
 def run_cell(cell: PilotCell, container: str, dry_run: bool, log_dir: Path) -> dict:
+    agent_cfg = f"{cell.ego}.yaml"
+    # `--frea-pretrain-ego`는 FREA의 ckpt 폴더 경로(expert_rule-based_seed0/...)를
+    # 결정한다. 우리는 expert pretrain 환경에서 학습된 fppo_adv ckpt만 갖고
+    # 있어 expert로 고정하고, ego 자체는 agent_cfg 파일로 분기한다
+    # (expert / expert_disturb).
     cmd_inside = (
         "SDL_VIDEODRIVER=dummy "
         "cd /home/safebench/FREA && "
         "python aaai_orchestrator/run_one_cell.py "
         "--safebench-root /home/safebench/FREA --tree frea "
-        "--agent-cfg expert.yaml --scenario-cfg fppo_adv_eval.yaml --policy-type fppo_adv "
+        f"--agent-cfg {agent_cfg} --scenario-cfg fppo_adv_eval.yaml --policy-type fppo_adv "
+        "--frea-pretrain-ego expert "
         f"--sid {cell.sid} --rid {cell.rid} --data-id {cell.data_id} "
         f"--c-value {cell.c_value} --seed 0 "
         f"--exp-name {cell.exp_name} --port 2000 --tm-port 8000 --num-scenario 1"
@@ -100,9 +109,13 @@ def extract_collision_and_cleanup(container: str, cell: PilotCell, out_dir: Path
     한 셀 끝나면 results.pkl·records.pkl을 셀명으로 host에 보관한 뒤 컨테이너 안
     원본을 지운다.
     """
+    # results.pkl 경로: FREA가 `eval_cbv_pretrained_with_<pretrain_ego>` 디렉토리
+    # 아래에 `<agent_policy_name>_<scenario_policy_name>_<CBV_selection>_seed<seed>/
+    # Scenario<sid>_<Town>/`로 둔다. pretrain_ego는 우리가 expert로 고정했으니
+    # 부모는 항상 expert. agent_policy_name은 cell.ego(expert 또는 expert_disturb).
     remote_dir = (
-        "/home/safebench/FREA/log/eval/eval_cbv_pretrained_with_expert/"
-        "expert_fppo_adv_rule-based_seed0/Scenario9_Town02"
+        f"/home/safebench/FREA/log/eval/eval_cbv_pretrained_with_expert/"
+        f"{cell.ego}_fppo_adv_rule-based_seed0/Scenario9_Town02"
     )
     p = subprocess.run(
         ["docker", "exec", container, "bash", "-lc",
