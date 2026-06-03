@@ -116,9 +116,27 @@ def extract_cell_response(records: dict, cell_index: int, cell_meta: dict) -> Ce
         for s in steps
     ]
 
-    # background trajectory hook이 SafeBench carla_runner에 추가되기 전에는
-    # bg_traj가 비어 있어 RSS 라벨러를 호출하지 못한다(D-08 잔여 위험 노트).
-    bg_traj = None
+    # background trajectory 추출. patches/safebench/route_scenario_patched.py가
+    # 적용된 컨테이너의 records.pkl에는 step dict에 'bg_trajectories' 키가
+    # 들어 있다(list of {id,type,role,x,y,velocity,yaw}). 어댑터는 이를
+    # actor_id별 시계열로 묶어 rss_labeler가 쓸 수 있게 정렬한다.
+    # patch가 안 들어간 컨테이너의 결과(라이트 fallback)는 None으로 둔다.
+    bg_traj: Optional[dict] = None
+    if "bg_trajectories" in steps[0]:
+        bg_traj = {}
+        for s in steps:
+            for v in s.get("bg_trajectories") or []:
+                vid = int(v.get("id", -1))
+                if vid < 0:
+                    continue
+                bg_traj.setdefault(vid, []).append([
+                    float(v.get("x", 0.0)),
+                    float(v.get("y", 0.0)),
+                    float(v.get("velocity", 0.0)),
+                    float(v.get("yaw", 0.0)),
+                ])
+        if not bg_traj:
+            bg_traj = None  # patch는 들어갔지만 차량이 한 대도 없었던 경우
 
     last = steps[-1]
     meta = dict(
