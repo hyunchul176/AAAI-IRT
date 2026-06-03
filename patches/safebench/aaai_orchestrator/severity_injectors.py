@@ -120,14 +120,23 @@ def _patch_nf(c_value: float) -> None:
     from safebench.scenario.scenario_policy import normalizing_flow_policy as nf
     from safebench.util.torch_util import CUDA
 
+    # 셀당 trial_k 카운터(같은 process 안 호출 순서 = trial_k). SafeBench가
+    # data_loader를 한 자리만 남기도록 yaml override하면 한 process = 한 셀이
+    # 되고, K 반복은 별도 process로 호출되어 _call_idx는 항상 0이 된다.
+    # 두 자리 모두 결정성 강제.
+    _aaai_call_idx = [0]
+
     def patched_get_init_action(self, state, infos, deterministic=False):
+        # AAAI-IRT patch (라운드 12): 같은 (sid, rid, data_id, seed) 셀이 매
+        # 호출 다른 z를 받지 않도록 manual_seed로 결정성 강제. trial_k는
+        # severity_injectors가 알 자리가 없으므로 (cell seed + call index)
+        # 조합으로 결정성 확보. SafeBench process 외부에서 trial_k별 새 seed로
+        # 호출되는 자리(한 셀 한 process)에서는 _call_idx가 항상 0.
+        seed = int(torch.initial_seed()) & 0xFFFFFFFF
+        torch.manual_seed(seed + _aaai_call_idx[0] * 7919)
+        _aaai_call_idx[0] += 1
         processed_state = self.proceess_init_state(state)
         processed_state = CUDA(torch.from_numpy(processed_state))
-        # AAAI-IRT patch (라운드 11): NF는 매 호출 다른 z를 sample하므로 같은
-        # (sid, rid, data_id, seed) 셀이라도 매번 다른 action이 나와 cell-level
-        # reproducibility가 깨진다. SafeBench의 set_seed가 process 시작 시
-        # 한 번 호출되므로 그 자리 이후 매 호출 manual_seed로 결정성을 강제한다.
-        # 같은 셀의 K=10 trial은 호출 횟수가 다르므로 자연스럽게 다른 z를 받는다.
         self.model.eval()
         with torch.no_grad():
             # z=0 대신 z ~ N(0, flow_sigma²I) sample (학습된 base prior 정합).

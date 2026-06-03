@@ -28,6 +28,13 @@ VARIANTS = [
     ("u_zero",     "u=0 고정, 회피불가 하한 무시 (현행 평가 관행)"),
 ]
 
+# 검토자 라운드 12가 짚은 자리: `g_common` 변종은 측정학 표준의 metric
+# invariance(2PL discrimination a_G가 group 간 같음)와는 다른 자리다. γ_G는
+# severity sensitivity regression slope이라 본문에 "G별 severity 반응 차이의
+# 통계적 유의성, measurement invariance 자체가 아님"으로 명시한다. LRT 자유도
+# (|G|−1)로 계산은 정합하지만 measurement invariance 용어를 본문에 묶어 쓰면
+# 환각이 된다.
+
 
 def run(jsonl_path: Path) -> None:
     print(">> D3 ablation 분석 진입점. 본 격자 응답이 모이면 호출.")
