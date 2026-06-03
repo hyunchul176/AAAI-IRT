@@ -123,9 +123,14 @@ def _patch_nf(c_value: float) -> None:
     def patched_get_init_action(self, state, infos, deterministic=False):
         processed_state = self.proceess_init_state(state)
         processed_state = CUDA(torch.from_numpy(processed_state))
+        # AAAI-IRT patch (라운드 11): NF는 매 호출 다른 z를 sample하므로 같은
+        # (sid, rid, data_id, seed) 셀이라도 매번 다른 action이 나와 cell-level
+        # reproducibility가 깨진다. SafeBench의 set_seed가 process 시작 시
+        # 한 번 호출되므로 그 자리 이후 매 호출 manual_seed로 결정성을 강제한다.
+        # 같은 셀의 K=10 trial은 호출 횟수가 다르므로 자연스럽게 다른 z를 받는다.
         self.model.eval()
         with torch.no_grad():
-            # AAAI-IRT patch: z=0 대신 z ~ N(0, flow_sigma²I) sample
+            # z=0 대신 z ~ N(0, flow_sigma²I) sample (학습된 base prior 정합).
             z = CUDA(torch.randn(self.action_dim)[None]) * flow_sigma
             condition = CUDA(torch.tensor(processed_state))[None]
             action = self.model.inverse(z, condition)
