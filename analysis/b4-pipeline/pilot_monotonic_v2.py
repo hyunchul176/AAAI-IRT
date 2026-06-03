@@ -32,18 +32,19 @@ from typing import Iterable
 
 
 EGOS = ["sac", "behavior"]
-GENERATORS = ["lc", "nf"]
+GENERATORS = ["lc", "idm_attack"]
 C_LEVELS = [0.0, 1.0, 2.0, 3.0, 4.0]
 K_REPS = 10
 
-# LC·NF 둘 다 scenario_id=2 adv_init_state.json 사용 (LC.yaml, nf.yaml 기본값).
-# route_id 0~3, 각 route당 data_id 10개. K=10 trial을 route 4개로 펼치고
-# 같은 route 안에서 data_id를 첫 자리부터 순환.
-SCENARIO_ID = 2
-ROUTE_DATA = [
-    # (route_id, first_data_id)
-    (0, 40), (1, 50), (2, 60), (3, 70),
-]
+# 라운드 12 정정 후 G 후보: LC + idm_attack(+ ordinary, baseline). NF는 yaml
+# 누락 10개 필드로 학습 자리 자체가 SafeBench upstream에서 한 번도 통과된 적
+# 없어 라운드 12에서 포기. G별 시나리오 카탈로그는 sb-pilot 안 jsonl과 정합한
+# 자리로 분리한다(host의 SafeBench와 docker 이미지의 SafeBench가 다른 commit
+# 자리에서 빌드된 사실, IDM smoke test에서 확인).
+G_SCENARIO_CFG = {
+    "lc":         dict(yaml="LC.yaml",         sid=2, route_first_data=[(0, 40), (1, 50), (2, 60), (3, 70)]),
+    "idm_attack": dict(yaml="idm_attack.yaml", sid=8, route_first_data=[(0, 280), (1, 290), (2, 300), (3, 310)]),
+}
 
 
 @dataclass(frozen=True)
@@ -67,19 +68,20 @@ class PilotCell:
 def iter_pilot_cells() -> Iterable[PilotCell]:
     for ego in EGOS:
         for g in GENERATORS:
+            cfg = G_SCENARIO_CFG[g]
+            route_data = cfg["route_first_data"]
             for c in C_LEVELS:
                 for k in range(K_REPS):
-                    rid, base_did = ROUTE_DATA[k % len(ROUTE_DATA)]
-                    data_id = base_did + (k // len(ROUTE_DATA))
+                    rid, base_did = route_data[k % len(route_data)]
+                    data_id = base_did + (k // len(route_data))
                     yield PilotCell(
                         ego=ego, g_id=g, c_value=c, trial_k=k,
-                        sid=SCENARIO_ID, rid=rid, data_id=data_id,
+                        sid=cfg["sid"], rid=rid, data_id=data_id,
                     )
 
 
 def run_cell(cell: PilotCell, container: str, dry_run: bool, log_dir: Path) -> dict:
-    # SafeBench scenario yaml 매핑
-    scenario_cfg = "LC.yaml" if cell.g_id == "lc" else "nf.yaml"
+    scenario_cfg = G_SCENARIO_CFG[cell.g_id]["yaml"]
     agent_cfg = f"{cell.ego}.yaml"
     cmd_inside = (
         "SDL_VIDEODRIVER=dummy "
