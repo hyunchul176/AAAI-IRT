@@ -16,13 +16,17 @@
         - ordinary (SafeBench 비적대 baseline)
     severity: SafeBench scenario는 severity 변수를 노출하지 않으므로
         해당 정책의 hyperparameter(attack budget, perturbation magnitude 등)
-        5수준으로 매핑한다 (생성기·severity 결정). 우선 c 값을 SafeBench yaml override로 주입.
+        5수준으로 매핑한다 (생성기·severity 결정).
     K=20: 한 (AV, G, c) 셀을 시드를 달리해 20회 반복.
 
-이 orchestrator는 위 1,800 cells을 SafeBench eval mode로 자동 순환 실행한다.
-한 라운드 = 한 (AV, G, c) 조합 × 20 trials. SafeBench의 --num_scenario 1과
-다양한 --seed로 K=20을 보장한다. 결과 records.pkl을 host로 docker cp 후
-analysis/b4-pipeline/sb_to_response.py의 collect_grid_responses로 JSONL.
+셀 → SafeBench eval 매핑:
+    한 셀은 한 (scenario_id, route_id, data_id) 인스턴스에 대응한다.
+    SafeBench scripts/run.py는 yaml의 scenario_id·route_id 두 필드로만
+    scenario_type json을 filter하므로, 셀별로 yaml override가 필요하다
+    (patches/safebench/aaai_orchestrator/yaml_override.py가 처리).
+    K=20 trial은 G별 (sid, rid, data_id) 카탈로그를 반복 인덱스로 가리킨다.
+    severity는 patches/safebench/aaai_orchestrator/severity_injectors.py가
+    정책별로 monkey-patch한다(단조성 pilot 후 매핑 표가 채워진다).
 
 본 격자(G=4) 확장은 PPO·DDPG·TD3·AdvSim·AdvTraj·NF 자체 학습이 완료된
 뒤 별도 orchestrator로(학습 진행 상태는 별도 추적).
@@ -50,36 +54,7 @@ C_LEVELS = [0.0, 1.0, 2.0, 3.0, 4.0]
 K_REPS = 20
 
 
-@dataclass(frozen=True)
-class Cell:
-    av_id: str
-    g_id: str
-    c: float
-    trial_k: int
-
-    @property
-    def seed(self) -> int:
-        # decisions.html 시드·시간·환경 결정: deterministic seed across processes.
-        # Python's built-in hash() is salted per process (PEP 456), so we use a
-        # stable hashlib digest of a canonical string and take the low 31 bits.
-        key = f"{self.av_id}|{self.g_id}|{self.c:.6f}|{self.trial_k}".encode("utf-8")
-        digest = hashlib.blake2b(key, digest_size=8).digest()
-        return int.from_bytes(digest, "little") % (2 ** 31)
-
-    @property
-    def exp_name(self) -> str:
-        return f"g3_{self.av_id}_{self.g_id}_c{self.c:.1f}_k{self.trial_k:02d}"
-
-
-def iter_cells() -> Iterable[Cell]:
-    for av in AV_LIST:
-        for g in G_LIST:
-            for c in C_LEVELS:
-                for k in range(K_REPS):
-                    yield Cell(av_id=av, g_id=g, c=c, trial_k=k)
-
-
-# ===== SafeBench/FREA 실행 명령 =====
+# ===== AV·G cfg 트리·yaml 매핑 =====
 # AV·G cfg는 두 트리에 나뉘어 있다:
 #   SafeBench tree: external/SafeBench/safebench/{agent,scenario}/config/
 #   FREA tree    : external/FREA/frea/{agent,scenario}/config/
@@ -95,39 +70,157 @@ AGENT_CFG = {
     "expert":         ("frea",      "expert.yaml"),
     "expert_disturb": ("frea",      "expert_disturb.yaml"),
 }
+# 정책 타입(policy_type)은 severity_injectors가 정책별 monkey-patch 분기에 쓴다.
+# (yaml의 policy_type 필드 값과 일치하도록 한다.)
 SCENARIO_CFG = {
-    "lc":       ("safebench", "LC.yaml"),
-    "fppo_adv": ("frea",      "fppo_adv_eval.yaml"),
-    "ordinary": ("safebench", "ordinary.yaml"),
+    "lc":       ("safebench", "LC.yaml",            "lc"),
+    "fppo_adv": ("frea",      "fppo_adv_eval.yaml", "fppo_adv"),
+    "ordinary": ("safebench", "ordinary.yaml",      "ordinary"),
 }
 
 
+# ===== G별 (sid, rid, data_id) 카탈로그 =====
+# SafeBench scenario_type json을 읽어 G의 기본 scenario_id filter(yaml의 값)에
+# 해당하는 (sid, rid, data_id) 목록을 펼친다. trial_k는 이 목록의 인덱스로
+# 사용한다.
+def _scenario_type_json_path(g_id: str, safebench_root: Path, frea_root: Path) -> Path:
+    """G의 base yaml에서 scenario_type 파일명을 읽어 절대 경로를 만든다."""
+    import yaml as _yaml
+    tree, base_yaml, _policy = SCENARIO_CFG[g_id]
+    if tree == "safebench":
+        root, sub = safebench_root, "safebench/scenario/config"
+    else:
+        root, sub = frea_root, "frea/scenario/config"
+    yaml_path = root / sub / base_yaml
+    if not yaml_path.exists():
+        raise FileNotFoundError(f"base scenario yaml missing: {yaml_path}")
+    with open(yaml_path) as f:
+        cfg = _yaml.safe_load(f)
+    scenario_type_dir = cfg.get("scenario_type_dir", "")
+    scenario_type_file = cfg.get("scenario_type", "")
+    return root / scenario_type_dir / scenario_type_file
+
+
+def build_g_catalog(g_id: str, safebench_root: Path, frea_root: Path) -> list[tuple[int, int, int]]:
+    """한 G에 대해 base yaml의 scenario_id·route_id filter를 적용한 뒤 남는
+    (sid, rid, data_id) 리스트를 돌려준다. trial_k는 이 리스트 인덱스로
+    K_REPS 만큼 순환한다.
+
+    fppo_adv는 FREA 트리에 별도 scenario_type 구조가 있을 가능성이 있어
+    safebench_root와 frea_root를 둘 다 받아 둔다(현재는 SafeBench 동일 구조
+    가정, FREA 점검 후 분기 추가).
+    """
+    import yaml as _yaml
+    tree, base_yaml, _policy = SCENARIO_CFG[g_id]
+    root = safebench_root if tree == "safebench" else frea_root
+    sub = "safebench/scenario/config" if tree == "safebench" else "frea/scenario/config"
+    with open(root / sub / base_yaml) as f:
+        cfg = _yaml.safe_load(f)
+    base_sid = cfg.get("scenario_id")
+    base_rid = cfg.get("route_id")
+    st_path = _scenario_type_json_path(g_id, safebench_root, frea_root)
+    with open(st_path) as f:
+        data_full = json.load(f)
+    cat: list[tuple[int, int, int]] = []
+    for item in data_full:
+        if base_sid is not None and item["scenario_id"] != base_sid:
+            continue
+        if base_rid is not None and item["route_id"] != base_rid:
+            continue
+        cat.append((item["scenario_id"], item["route_id"], item["data_id"]))
+    if not cat:
+        raise RuntimeError(f"empty catalog for {g_id} (yaml={base_yaml})")
+    return cat
+
+
+@dataclass(frozen=True)
+class Cell:
+    av_id: str
+    g_id: str
+    c_idx: int
+    c_value: float
+    trial_k: int
+    sid: int
+    rid: int
+    data_id: int
+
+    @property
+    def seed(self) -> int:
+        # decisions.html 시드·시간·환경 결정: deterministic seed across processes.
+        # Python's built-in hash() is salted per process (PEP 456), so we use a
+        # stable hashlib digest of a canonical string and take the low 31 bits.
+        key = (
+            f"{self.av_id}|{self.g_id}|{self.c_value:.6f}|{self.trial_k}|"
+            f"{self.sid}|{self.rid}|{self.data_id}"
+        ).encode("utf-8")
+        digest = hashlib.blake2b(key, digest_size=8).digest()
+        return int.from_bytes(digest, "little") % (2 ** 31)
+
+    @property
+    def exp_name(self) -> str:
+        return (
+            f"g3_{self.av_id}_{self.g_id}_c{self.c_value:.1f}_k{self.trial_k:02d}"
+            f"_s{self.sid}r{self.rid}d{self.data_id}"
+        )
+
+
+def iter_cells(safebench_root: Path, frea_root: Path) -> Iterable[Cell]:
+    catalogs = {g: build_g_catalog(g, safebench_root, frea_root) for g in G_LIST}
+    for av in AV_LIST:
+        for g in G_LIST:
+            cat = catalogs[g]
+            for c_idx, c_value in enumerate(C_LEVELS):
+                for k in range(K_REPS):
+                    sid, rid, data_id = cat[k % len(cat)]
+                    yield Cell(
+                        av_id=av, g_id=g,
+                        c_idx=c_idx, c_value=c_value, trial_k=k,
+                        sid=sid, rid=rid, data_id=data_id,
+                    )
+
+
+# ===== SafeBench/FREA 실행 명령 =====
 def safebench_cmd(cell: Cell, port: int = 2000, tm_port: int = 8000) -> str:
-    """한 셀을 컨테이너 내부에서 평가하는 명령. AV·G가 같은 트리(safebench
-    또는 frea)에 있을 때 그 트리의 entrypoint로 실행한다. 두 트리가 섞이면
-    별도 stage가 필요하므로 ValueError로 알려 본 격자 실행 전에 처리한다.
+    """한 셀을 컨테이너 내부에서 평가하는 명령.
+
+    AV·G가 같은 트리(safebench 또는 frea)에 있을 때 그 트리의 entrypoint로
+    실행한다. 두 트리가 섞이면 별도 stage가 필요하므로 ValueError로 알려 본
+    격자 실행 전에 처리한다. entrypoint는 SafeBench의 scripts/run.py가 아니라
+    셀별 yaml override + severity injection을 처리하는
+    patches/safebench/aaai_orchestrator/run_one_cell.py로 보낸다(컨테이너 안에
+    /home/safebench/SafeBench/aaai_orchestrator/로 docker cp 되어 있다고 가정).
     """
     av_tree, av_cfg = AGENT_CFG[cell.av_id]
-    g_tree, g_cfg   = SCENARIO_CFG[cell.g_id]
+    g_tree, g_cfg, policy_type = SCENARIO_CFG[cell.g_id]
     if av_tree != g_tree:
         raise ValueError(
             f"AV({cell.av_id}@{av_tree}) and G({cell.g_id}@{g_tree}) live in "
             f"different repos; orchestrate after staging or run via FREA tree"
         )
     if av_tree == "safebench":
-        cwd, entry = "/home/safebench/SafeBench", "scripts/run.py"
+        sb_root = "/home/safebench/SafeBench"
     else:
-        cwd, entry = "/home/safebench/FREA", "scripts/run.py"
-    return (
-        "SDL_VIDEODRIVER=dummy "
-        f"cd {cwd} && "
-        f"python {entry} "
-        f"--agent_cfg {av_cfg} --scenario_cfg {g_cfg} "
-        "--mode eval --num_scenario 1 "
-        f"--seed {cell.seed} "
-        f"--port {port} --tm_port {tm_port} "
-        f"--exp_name {cell.exp_name}"
-    )
+        sb_root = "/home/safebench/FREA"
+
+    parts = [
+        "SDL_VIDEODRIVER=dummy",
+        f"cd {sb_root} &&",
+        "python aaai_orchestrator/run_one_cell.py",
+        f"--safebench-root {sb_root}",
+        f"--agent-cfg {av_cfg}",
+        f"--scenario-cfg {g_cfg}",
+        f"--policy-type {policy_type}",
+        f"--sid {cell.sid}",
+        f"--rid {cell.rid}",
+        f"--data-id {cell.data_id}",
+        f"--c-value {cell.c_value}",
+        f"--seed {cell.seed}",
+        f"--exp-name {cell.exp_name}",
+        f"--port {port}",
+        f"--tm-port {tm_port}",
+        "--num-scenario 1",
+    ]
+    return " ".join(parts)
 
 
 # ===== orchestrator =====
@@ -164,11 +257,17 @@ def main():
                    help="Print docker commands without running")
     p.add_argument("--limit", type=int, default=None,
                    help="Run only the first N cells (smoke test)")
+    p.add_argument("--safebench-root", default="external/SafeBench",
+                   help="local path to SafeBench checkout (for reading scenario_type json)")
+    p.add_argument("--frea-root", default="external/FREA",
+                   help="local path to FREA checkout (for reading FREA scenario_type)")
     args = p.parse_args()
 
+    safebench_root = Path(args.safebench_root).resolve()
+    frea_root = Path(args.frea_root).resolve()
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
-    cells = list(iter_cells())
+    cells = list(iter_cells(safebench_root, frea_root))
     if args.limit:
         cells = cells[:args.limit]
     print(f">>> {len(cells)} cells to run (AV={len(AV_LIST)} × G={len(G_LIST)} × "
