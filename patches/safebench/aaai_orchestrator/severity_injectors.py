@@ -26,6 +26,18 @@ from typing import Callable
 # 들어간다. pilot 전에는 비워 두고, severity injector는 c_value가 매핑에 없으면
 # 명시적으로 NotImplementedError를 던지도록 한다(silent fallback 금지).
 SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
+    # IDMAttackPolicy의 c 다이얼: adv_behavior_single 시나리오 정의의
+    # convert_actions이 `speed = action[0]*5 + 5`로 변환하므로, action[0] 단일
+    # 변수로 background actor target_speed를 0~25 m/s 범위에서 단조 조절.
+    # c=0.0(부드러운 진입 5 m/s)부터 c=4.0(빠른 진입 25 m/s)까지 코드 수준에서
+    # 단조성이 보장된다(plan §4·§13의 표준 단순 생성기 권고와 정합).
+    "idm_attack": {
+        0.0: {"action_value": 0.0},   # → speed = 5  m/s
+        1.0: {"action_value": 1.0},   # → speed = 10 m/s
+        2.0: {"action_value": 2.0},   # → speed = 15 m/s
+        3.0: {"action_value": 3.0},   # → speed = 20 m/s
+        4.0: {"action_value": 4.0},   # → speed = 25 m/s
+    },
     # LC(REINFORCE init-state policy)의 c 다이얼 후보. 검토자 라운드 10이 짚은
     # 자리로, 매 시나리오 시작 위치 한 번 결정에서 c 5수준을 만들 자리는
     # sample_action의 Gaussian σ에 곱하는 sigma_scale 한 자리 변수다. 가설
@@ -197,6 +209,29 @@ def _patch_fppo_adv(c_value: float) -> None:
     PPO.load_model = patched_load
 
 
+def _patch_idm_attack(c_value: float) -> None:
+    """IDMAttackPolicy의 c 다이얼을 SEVERITY_MAP에서 받아 인스턴스 attribute에
+    주입. policy.get_action이 매 step `[[self._aaai_action_value]]`을 돌려주고
+    그 값이 adv_behavior_single.update_behavior의 convert_actions에서
+    `speed = action[0]*5 + 5`로 변환된다.
+    """
+    mapping = SEVERITY_MAP["idm_attack"].get(c_value)
+    if mapping is None:
+        raise NotImplementedError(
+            f"IDMAttackPolicy severity mapping for c={c_value} not yet calibrated"
+        )
+    action_value = mapping["action_value"]
+    from safebench.scenario.scenario_policy import idm_attack as ia
+
+    orig_init = ia.IDMAttackPolicy.__init__
+
+    def patched_init(self, scenario_config, logger):
+        orig_init(self, scenario_config, logger)
+        self._aaai_action_value = action_value
+
+    ia.IDMAttackPolicy.__init__ = patched_init
+
+
 _INJECTORS: dict[str, Callable[[float], None]] = {
     "lc": _patch_lc,
     "nf": _patch_nf,
@@ -204,6 +239,7 @@ _INJECTORS: dict[str, Callable[[float], None]] = {
     "advtraj": _patch_hardcode,
     "ordinary": _patch_dummy,
     "fppo_adv": _patch_fppo_adv,
+    "idm_attack": _patch_idm_attack,
 }
 
 
