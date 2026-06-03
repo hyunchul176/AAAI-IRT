@@ -28,12 +28,17 @@ def make_cell_scenario_yaml(
     cell_tag: str,
     scenario_id: Optional[int],
     route_id: Optional[int],
+    data_id: Optional[int] = None,
     model_id: Optional[int] = None,
 ) -> str:
-    """base yaml을 읽어 (scenario_id, route_id, model_id)를 셀에 맞게 덮어쓴 새
-    yaml을 safebench/scenario/config/aaai_cell_<tag>.yaml로 저장하고 그 파일명을
-    돌려준다. scripts/run.py에 --scenario_cfg로 넘기는 값(파일명만)이 그대로
-    돼야 하므로 SafeBench config 디렉토리 안에 두는 것이 가장 깔끔하다.
+    """base yaml을 읽어 (scenario_id, route_id, data_id, model_id)를 셀에 맞게
+    덮어쓴 새 yaml을 safebench/scenario/config/aaai_cell_<tag>.yaml로 저장하고
+    그 파일명을 돌려준다. scripts/run.py에 --scenario_cfg로 넘기는 값(파일명만)이
+    그대로 돼야 하므로 SafeBench config 디렉토리 안에 두는 것이 가장 깔끔하다.
+
+    `data_id` 필드는 SafeBench upstream의 `scenario_utils.py`에는 filter 자리가
+    없어 별도 패치(`patches/safebench/scenario_utils_patched.py`)가 그것을 읽도록
+    한 줄 추가했다. 두 패치는 같이 적용되어야 한다.
 
     Args:
       safebench_root: SafeBench 저장소 루트(예: /home/safebench/SafeBench).
@@ -41,6 +46,7 @@ def make_cell_scenario_yaml(
       cell_tag: 셀 식별자(파일명 충돌 방지용).
       scenario_id: 강제할 scenario_id(None이면 base 값 유지).
       route_id: 강제할 route_id.
+      data_id: 강제할 data_id(patched scenario_utils.py가 읽음).
       model_id: REINFORCE(LC·NF) 정책의 model_id를 셀별로 바꾸고 싶으면 지정.
 
     Returns:
@@ -56,6 +62,8 @@ def make_cell_scenario_yaml(
         cfg["scenario_id"] = scenario_id
     if route_id is not None:
         cfg["route_id"] = route_id
+    if data_id is not None:
+        cfg["data_id"] = data_id
     if model_id is not None and "model_id" in cfg:
         cfg["model_id"] = model_id
 
@@ -64,6 +72,20 @@ def make_cell_scenario_yaml(
     with open(tmp_path, "w") as f:
         yaml.safe_dump(cfg, f, sort_keys=False)
     return tmp_name
+
+
+def sweep_stale_cell_yamls(safebench_root: str) -> int:
+    """orchestrator 시작 시 호출. 직전 실행이 SIGKILL이나 docker 중단으로 끝나
+    atexit cleanup이 작동하지 않은 경우 config 디렉토리에 `aaai_cell_*.yaml`
+    잔여 파일이 남는다. 잔여 yaml은 scripts/run.py의 scenario_cfg 후보로 보일
+    수 있어 디렉토리 오염이 되므로 일괄 삭제한다. 삭제 개수를 돌려준다.
+    """
+    cfg_dir = Path(safebench_root) / SAFEBENCH_SCENARIO_CFG_DIR
+    n = 0
+    for p in cfg_dir.glob("aaai_cell_*.yaml"):
+        p.unlink()
+        n += 1
+    return n
 
 
 def remove_cell_scenario_yaml(safebench_root: str, tmp_name: str) -> None:

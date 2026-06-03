@@ -104,7 +104,7 @@ private 전환 + Pro plan에서 private Pages 호스팅.
 
 ## 다음 할 일
 
-1. **B 단계 첫 작업: SafeBench 도커 + 한 셀 pilot** (결과 파일 디스크·GPU 인스턴스 수 위험 측정).
+1. **B 단계 첫 작업: SafeBench 도커 + 한 셀 pilot** (결과 파일 디스크 폭증 위험과 GPU 동시 실행 인스턴스 수 위험 측정).
    SafeBench `bash external/SafeBench/docker/run_docker.sh`로 `safebench/safebench` 이미지 띄움
    (Docker Hub에 있는지 확인, 없으면 `docker build -t safebench/safebench external/SafeBench/docker/`).
    한 셀 rollout으로 wall-clock과 한 인스턴스 VRAM 점유 측정 → 본 격자 셋(540/2,400/3,200 cells)

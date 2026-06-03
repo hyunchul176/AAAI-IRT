@@ -120,8 +120,13 @@ def _patch_fppo_adv(c_value: float) -> None:
         raise NotImplementedError(
             f"FREA fppo_adv severity mapping for c={c_value} not yet calibrated by pilot"
         )
-    # 실제 monkey-patch는 단조성 pilot 결과로 정한다.
-    raise NotImplementedError("fppo_adv severity monkey-patch entry to be wired after pilot")
+    # 실제 hook은 FREA의 PPO.policy.get_action 분포 구조 점검 후 채운다. mapping
+    # 표가 채워졌다는 것은 pilot이 진입점을 확인했다는 뜻이므로 그 시점에 여기서
+    # 실제 monkey-patch를 적용한다.
+    raise NotImplementedError(
+        "fppo_adv hook awaiting FREA PPO sample-distribution inspection; "
+        f"SEVERITY_MAP['fppo_adv'][{c_value}]={mapping} is set but no patch wired"
+    )
 
 
 _INJECTORS: dict[str, Callable[[float], None]] = {

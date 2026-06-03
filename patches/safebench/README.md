@@ -30,7 +30,29 @@ docker cp patches/safebench/route_scenario_patched.py \
 `analysis/b4-pipeline/sb_to_response.py`가 그것을 `bg_traj`로 읽어
 `analysis/b4-pipeline/rss_labeler.py`로 회피불가 라벨 u를 부여한다.
 
-## Patch 2: `aaai_orchestrator/` · 셀 단위 yaml override + severity injection
+## Patch 2: `scenario_utils.py` · yaml의 data_id 필드로 셀 단위 filter
+
+SafeBench upstream `scenario_utils.py`는 yaml의 `scenario_id`·`route_id`로만
+scenario_type json을 filter한다. 우리 한 셀 = 한 (scenario_id, route_id,
+data_id) 매핑이 작동하려면 `data_id` filter가 한 줄 더 필요하다(검토자 라운드
+8 지적). 패치는 한 위치에 7줄 추가만 한다.
+
+파일:
+- `scenario_utils_original.py`: SafeBench 안의 `safebench/scenario/tools/scenario_utils.py` 원본(2026-06-03).
+- `scenario_utils_patched.py`: 같은 파일에 `if config.get('data_id') is not None:` 분기 한 단락 추가.
+
+적용:
+
+```bash
+docker cp patches/safebench/scenario_utils_patched.py \
+    <container>:/home/safebench/SafeBench/safebench/scenario/tools/scenario_utils.py
+```
+
+이 패치 없이는 yaml에 `data_id`를 적어도 무시되어 한 (sid, rid) 묶음의 모든
+data_id가 한 SafeBench eval에서 같이 실행된다. orchestrator 호출 전에
+반드시 함께 적용한다.
+
+## Patch 3: `aaai_orchestrator/` · 셀 단위 yaml override + severity injection
 
 응답 격자(1,800 cells)의 한 셀을 SafeBench eval 한 번에 1대1로 매핑한다.
 SafeBench `scripts/run.py`는 yaml의 `scenario_id`·`route_id` 두 필드로만

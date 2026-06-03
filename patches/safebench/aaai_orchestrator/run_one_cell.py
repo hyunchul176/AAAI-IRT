@@ -74,13 +74,14 @@ def main() -> int:
         make_cell_scenario_yaml, remove_cell_scenario_yaml,
     )
 
-    # tmp scenario yaml 만들기
+    # tmp scenario yaml 만들기 (data_id는 patched scenario_utils.py가 읽음)
     tmp_scenario_yaml = make_cell_scenario_yaml(
         safebench_root=str(safebench_root),
         base_scenario_cfg=args.scenario_cfg,
         cell_tag=args.exp_name,
         scenario_id=args.sid,
         route_id=args.rid,
+        data_id=args.data_id,
         model_id=args.model_id,
     )
     atexit.register(remove_cell_scenario_yaml, str(safebench_root), tmp_scenario_yaml)

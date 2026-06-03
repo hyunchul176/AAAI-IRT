@@ -5,8 +5,8 @@ B4 응답 기록 어댑터 (decisions.html 응답표 변환 결정).
 SafeBench `scripts/run.py --mode eval` 실행이 끝나면
 `log/exp/<exp_name>/eval_results/` 아래에 두 파일을 남긴다:
 
-    results.pkl  — aggregate dict (collision_rate·distance_to_route·... 6 metric)
-    records.pkl  — dict {cell_index: list of step dict}
+    results.pkl  : aggregate dict (collision_rate·distance_to_route·... 6 metric)
+    records.pkl  : dict {cell_index: list of step dict}
                    step dict 키 (2026-06-03 실측 확인, exp_sac_lc_seed_0):
                      ego_velocity, ego_acceleration_x/y/z,
                      ego_x, ego_y, ego_z, ego_roll, ego_pitch, ego_yaw,

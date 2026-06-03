@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-즉시 B 단계 G=3 격자 실행 orchestrator (decisions.html 격자 후보 결정의 두 단계 진입).
+즉시 B 단계 G=3 격자 실행 orchestrator (decisions.html 격자 후보 결정에 따른 두 단계 진입).
 
 격자: AV 6명 × G 3종 × severity 5수준 × 셀당 반복 K=20 = 1,800 cells
     AV (즉시 사용 가능, 학습 없이):
@@ -267,6 +267,16 @@ def main():
     frea_root = Path(args.frea_root).resolve()
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
+    # 직전 실행이 SIGKILL이나 docker 중단으로 끝났다면 atexit cleanup이
+    # 호스트 yaml에는 영향을 주지 않지만 컨테이너 안 SafeBench config 디렉토리
+    # 정리를 docker exec로 한 번 호출해 디렉토리 오염을 막는다. dry-run에서는
+    # 컨테이너 호출이 없으므로 건너뛴다.
+    if not args.dry_run:
+        subprocess.run([
+            "docker", "exec", args.container, "bash", "-lc",
+            "rm -f /home/safebench/SafeBench/safebench/scenario/config/aaai_cell_*.yaml "
+            "/home/safebench/FREA/frea/scenario/config/aaai_cell_*.yaml 2>/dev/null || true",
+        ], check=False)
     cells = list(iter_cells(safebench_root, frea_root))
     if args.limit:
         cells = cells[:args.limit]
