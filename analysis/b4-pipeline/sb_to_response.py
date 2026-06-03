@@ -2,33 +2,38 @@
 """
 B4 응답 기록 어댑터 (decisions.html D-08).
 
-SafeBench `safebench/carla_runner.py`가 한 rollout을 끝내면 자체 logger
-(`safebench/util/logger.py`의 `Logger`)에 출력을 쌓고, eval 모드에서는
-`scenario_data_loader`가 만든 (route_id, scenario_id) 단위로 결과 dict를
-남긴다. 이 어댑터는 그 출력에서 다음 다섯을 추출해 측정 모델 식 (6)의
-응답 한 행으로 변환한다.
+SafeBench `scripts/run.py --mode eval` 실행이 끝나면
+`log/exp/<exp_name>/eval_results/` 아래에 두 파일을 남긴다:
 
-    (i)   y = 충돌 여부 0/1
-    (ii)  t_collision = 충돌 시점 (없으면 None), 종류 (ego가 가해/피해)
-    (iii) ego_traj, bg_traj = 시계열 위치·속도·heading
-    (iv)  meta = 생성기 모수·route·날씨·step 수
-    (v)   u_label = RSS 라벨러(rss_labeler.rss_label)로 부여한 회피불가 하한
+    results.pkl  — aggregate dict (collision_rate·distance_to_route·... 6 metric)
+    records.pkl  — dict {cell_index: list of step dict}
+                   step dict 키 (2026-06-03 실측 확인, exp_sac_lc_seed_0):
+                     ego_velocity, ego_acceleration_x/y/z,
+                     ego_x, ego_y, ego_z, ego_roll, ego_pitch, ego_yaw,
+                     current_game_time, driven_distance, average_velocity,
+                     lane_invasion, off_road, collision (py_trees Status enum),
+                     run_red_light, run_stop, distance_to_route, route_complete
 
-응답 한 행은 dict 또는 dataclass로 누적되어 격자 응답표
-(`analysis/d-study/response_table.{jsonl,parquet}` 또는 본 격자 대응 파일)
-에 append된다. 이 응답표가 곧 측정 모델 MAP+Laplace 적합의 입력이다.
+이 어댑터가 records.pkl을 읽어 우리 측정 모델 식 (6)의 응답 한 행 CellResponse로
+변환한다. background 차량 시계열 궤적은 SafeBench 기본 logger에 없으므로
+(D-08 잔여 위험 노트 확인) `bg_traj` 필드는 None으로 두고, RSS 라벨러는
+ego 단독으로는 회피불가 판정이 불가하니 u_label도 None으로 둔다. 본 격자
+진입 전 SafeBench carla_runner에 background trajectory hook 추가가 필요하다.
 
-B 단계 첫 작업에서 확인할 것 (D-08 잔여 위험 노트):
-- SafeBench 기본 logger가 ego 중심 지표(yaw, acceleration 등)는 저장하나
-  background 차량 시계열 궤적의 자동 저장은 보장되지 않는다. 어댑터 첫
-  점검으로 background trajectory hook을 `carla_runner.py`에 추가해야 할
-  가능성이 있다(rss_label에 background 궤적이 필요).
-- SafeBench rollout 단위는 default `num_scenario=2`라 셀 1개 = rollout 1개로
-  매핑하려면 `scripts/run.py --num_scenario 1`로 강제하거나 wrapper에서
-  data_ids별로 분리해 셀 단위 응답을 만든다(bev_wrapper도 같은 결정).
+사용:
+    records = load_records("log/exp/exp_sac_lc_seed_0/eval_results/records.pkl")
+    resp = extract_cell_response(records, cell_index=0,
+                                  cell_meta={"av_id":"sac","g_id":"lc","c":0.0,"trial_k":0})
+    collect_grid_responses(grid_log_dir, cell_meta_map, "responses.jsonl")
+
+의존성: pickle.load가 SafeBench 모듈(safebench.*, carla)을 동적으로 import한다.
+어댑터는 SafeBench 도커 컨테이너 안에서 실행하거나, 호스트에 SafeBench +
+carla-0.9.13 egg를 PYTHONPATH로 잡고 실행한다.
 """
 from __future__ import annotations
 
+import json
+import pickle
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -43,61 +48,186 @@ class CellResponse:
     trial_k: int
     y: int                          # 0 무충돌, 1 충돌
     t_collision: Optional[float]    # 충돌 시점 (sim time, sec). 없으면 None
-    collision_type: Optional[str]   # 'ego_at_fault' | 'bg_at_fault' | 'unavoidable' | None
+    collision_type: Optional[str]   # 'ego_at_fault' | 'bg_at_fault' | 'unavoidable' | 'unknown' | None
     u_label: Optional[float]        # rss_label 후처리. 0~1, RSS 위반 정도
     ego_traj: Optional[list] = field(default=None)   # (T, [x,y,vx,vy,heading])
-    bg_traj: Optional[dict] = field(default=None)    # {bg_id: (T, [...])}
-    meta: dict = field(default_factory=dict)         # route_id·town·weather·step 등
+    bg_traj: Optional[dict] = field(default=None)    # {bg_id: (T, [...])}, SafeBench hook 추가 후 채움
+    meta: dict = field(default_factory=dict)         # cell_index·route·step·기타 진단 정보
 
 
-def extract_rollout_response(rollout_log: dict, cell_meta: dict) -> CellResponse:
-    """SafeBench carla_runner.py 한 rollout 출력 → CellResponse 한 건.
+def _status_is_collision(status) -> bool:
+    """SafeBench의 'collision' 키 값이 py_trees.common.Status enum이고
+    Status.FAILURE면 충돌, Status.RUNNING/SUCCESS는 무충돌로 본다.
+    enum import 의존성 회피를 위해 str(value)로 비교한다."""
+    if status is None:
+        return False
+    s = str(status)
+    return "FAILURE" in s or "Failure" in s
+
+
+def load_records(records_path) -> dict:
+    """SafeBench records.pkl 로드. 의존성(safebench.*, carla)이 PYTHONPATH에 있어야 한다."""
+    with open(records_path, "rb") as f:
+        return pickle.load(f)
+
+
+def extract_cell_response(records: dict, cell_index: int, cell_meta: dict) -> CellResponse:
+    """records dict에서 한 셀(cell_index)을 CellResponse 한 행으로 변환.
 
     Args:
-        rollout_log: SafeBench Logger가 dump한 dict. 키 후보:
-            - 'collision' (bool 또는 dict)
-            - 'collision_time' (sec) / 'collision_actor' (carla.Actor id)
-            - 'ego_history' (list of state)
-            - 'bg_history' (dict of actor_id -> list of state)
-              -> background trajectory hook 추가 후에만 채워짐
-            - 'scenario_config' (yaml에서 풀린 메타)
-        cell_meta: 셀 식별자 dict {'av_id','g_id','c','trial_k'}
+        records: load_records() 결과 (dict {int -> list of step dict})
+        cell_index: SafeBench가 부여한 (route, scenario) 인덱스
+        cell_meta: 우리 격자 셀 식별자 {'av_id','g_id','c','trial_k'}
 
     Returns:
-        CellResponse. u_label은 별도로 rss_labeler.rss_label로 채운다.
+        CellResponse. u_label은 별도로 rss_labeler.label_avoidability로 채운다.
     """
-    raise NotImplementedError("B 단계 첫 작업에서 SafeBench Logger 키 스펙 확인 후 채움")
+    if cell_index not in records:
+        raise KeyError(f"cell_index {cell_index} not in records (available: "
+                       f"{min(records)}~{max(records)} total {len(records)})")
+    steps = records[cell_index]
+    n_steps = len(steps)
+    if n_steps == 0:
+        return CellResponse(
+            av_id=cell_meta["av_id"], g_id=cell_meta["g_id"],
+            c=cell_meta["c"], trial_k=cell_meta["trial_k"],
+            y=0, t_collision=None, collision_type=None, u_label=None,
+            ego_traj=None, bg_traj=None,
+            meta=dict(cell_index=cell_index, n_steps=0, empty=True),
+        )
+
+    # 충돌 검출: collision 키가 FAILURE로 전환되는 첫 step
+    y = 0
+    t_collision: Optional[float] = None
+    for step in steps:
+        if _status_is_collision(step.get("collision")):
+            y = 1
+            t_collision = float(step.get("current_game_time", 0.0))
+            break
+
+    # ego 시계열 (T, [x, y, velocity, yaw])
+    ego_traj = [
+        [
+            float(s.get("ego_x", 0.0)),
+            float(s.get("ego_y", 0.0)),
+            float(s.get("ego_velocity", 0.0)),
+            float(s.get("ego_yaw", 0.0)),
+        ]
+        for s in steps
+    ]
+
+    # background trajectory hook이 SafeBench carla_runner에 추가되기 전에는
+    # bg_traj가 비어 있어 RSS 라벨러를 호출하지 못한다(D-08 잔여 위험 노트).
+    bg_traj = None
+
+    last = steps[-1]
+    meta = dict(
+        cell_index=cell_index,
+        n_steps=n_steps,
+        route_complete=float(last.get("route_complete", 0.0)),
+        driven_distance=float(last.get("driven_distance", 0.0)),
+        average_velocity=float(last.get("average_velocity", 0.0)),
+        off_road=bool(any(s.get("off_road") for s in steps)),
+        lane_invasion=bool(any(s.get("lane_invasion") for s in steps)),
+        run_red_light=bool(any(s.get("run_red_light") for s in steps)),
+    )
+
+    return CellResponse(
+        av_id=cell_meta["av_id"],
+        g_id=cell_meta["g_id"],
+        c=float(cell_meta["c"]),
+        trial_k=int(cell_meta["trial_k"]),
+        y=y,
+        t_collision=t_collision,
+        collision_type="unknown" if y == 1 else None,
+        u_label=None,
+        ego_traj=ego_traj,
+        bg_traj=bg_traj,
+        meta=meta,
+    )
 
 
-def label_avoidability(resp: CellResponse, rss_params: dict) -> CellResponse:
-    """rss_labeler를 호출해 resp.u_label 채움. ego·bg 궤적이 필요."""
-    from .rss_labeler import rss_label
-    if resp.ego_traj is None:
-        raise ValueError("ego_traj가 비어 있음: SafeBench logger에서 ego_history 확인")
-    if resp.bg_traj is None:
-        raise ValueError("bg_traj가 비어 있음: background trajectory hook 추가 필요")
-    if resp.y == 0:
-        resp.u_label = 0.0   # 충돌 안 났으면 회피불가 라벨 무관
-        return resp
-    resp.u_label = rss_label(resp.ego_traj, resp.bg_traj, resp.t_collision, rss_params)
-    return resp
+def _resp_to_dict(resp: CellResponse) -> dict:
+    """CellResponse → JSON-serializable dict (jsonl 한 줄)."""
+    return dict(
+        av_id=resp.av_id, g_id=resp.g_id, c=resp.c, trial_k=resp.trial_k,
+        y=resp.y, t_collision=resp.t_collision, collision_type=resp.collision_type,
+        u_label=resp.u_label,
+        ego_traj=resp.ego_traj, bg_traj=resp.bg_traj,
+        meta=resp.meta,
+    )
 
 
-def append_response(resp: CellResponse, table_path: Path) -> None:
-    """응답표(JSONL)에 한 행 append. parquet 변환은 격자 끝나고 별도."""
-    raise NotImplementedError("dataclass → dict → json.dumps 한 줄, append 모드로 write")
+def append_response(resp: CellResponse, table_path) -> None:
+    """응답표(JSONL)에 한 행 append."""
+    with open(table_path, "a") as f:
+        f.write(json.dumps(_resp_to_dict(resp), ensure_ascii=False) + "\n")
 
 
 def collect_grid_responses(
-    grid: dict, sb_log_dir: Path, output_path: Path, rss_params: dict
-) -> None:
-    """한 격자 (AV × G × severity × K)의 모든 rollout 출력을 응답표로 모음.
+    grid_log_dir, cell_meta_map: dict, output_path, rss_params: Optional[dict] = None,
+) -> dict:
+    """한 격자 SafeBench eval 로그 디렉토리 → 응답표 JSONL.
 
     흐름:
-        1. sb_log_dir 아래의 SafeBench 결과 dict를 셀별로 로드
-        2. 각 rollout을 extract_rollout_response로 변환
-        3. label_avoidability로 u_label 채움
-        4. append_response로 output_path에 누적
-        5. 격자 끝에 보고서 출력 (실패 셀 비율 등, D-10)
+      1. records.pkl 로드
+      2. cell_meta_map의 각 cell_index에 대해 extract_cell_response 호출
+      3. (rss_params and bg_traj available) → label_avoidability로 u_label 채움
+      4. output_path(JSONL)에 한 행씩 append
+      5. 보고서 dict 반환 (총 셀 수·결측·충돌률·평균 step 수)
+
+    Args:
+        grid_log_dir: SafeBench eval log dir (records.pkl·results.pkl 포함)
+        cell_meta_map: dict {cell_index: cell_meta(dict)}
+        output_path: 응답표 JSONL path (덮어쓰기)
+        rss_params: rss_labeler 파라미터 dict. None이면 u_label은 None으로 남김.
     """
-    raise NotImplementedError("B 단계 첫 작업: SafeBench 출력 디렉토리 구조 확인 후 채움")
+    grid_log_dir = Path(grid_log_dir)
+    records = load_records(grid_log_dir / "records.pkl")
+    output_path = Path(output_path)
+    output_path.write_text("")  # 초기화
+
+    stats = dict(n_total=len(cell_meta_map), n_missing=0, n_collision=0,
+                 n_with_bg=0, n_labeled=0, mean_n_steps=0.0)
+    sum_steps = 0
+
+    for cell_index, cell_meta in cell_meta_map.items():
+        if cell_index not in records:
+            stats["n_missing"] += 1
+            continue
+        resp = extract_cell_response(records, cell_index, cell_meta)
+        sum_steps += resp.meta.get("n_steps", 0)
+        if resp.y == 1:
+            stats["n_collision"] += 1
+        # background traj hook이 추가된 뒤에만 RSS 라벨링 가능
+        if resp.bg_traj is not None:
+            stats["n_with_bg"] += 1
+            if rss_params is not None and resp.y == 1:
+                from .rss_labeler import rss_label
+                resp.u_label = rss_label(resp.ego_traj, resp.bg_traj,
+                                         resp.t_collision, rss_params)
+                stats["n_labeled"] += 1
+        append_response(resp, output_path)
+
+    n_ok = stats["n_total"] - stats["n_missing"]
+    stats["mean_n_steps"] = (sum_steps / n_ok) if n_ok > 0 else 0.0
+    stats["collision_rate"] = (stats["n_collision"] / n_ok) if n_ok > 0 else 0.0
+    return stats
+
+
+if __name__ == "__main__":
+    # 빠른 sanity: 직전 LC + SAC pilot 로그에서 한 셀을 변환해 출력
+    import sys
+    log_dir = sys.argv[1] if len(sys.argv) > 1 else \
+        "log/exp/exp_sac_lc_seed_0/eval_results"
+    records = load_records(Path(log_dir) / "records.pkl")
+    print(f"records cells: {len(records)}  index range: "
+          f"{min(records)}~{max(records)}")
+    sample_idx = next(iter(records))
+    resp = extract_cell_response(records, sample_idx,
+                                 dict(av_id="sac", g_id="lc", c=0.0, trial_k=0))
+    print(f"cell {sample_idx}: y={resp.y} n_steps={resp.meta['n_steps']} "
+          f"route_complete={resp.meta['route_complete']:.2f} "
+          f"driven={resp.meta['driven_distance']:.1f}m  "
+          f"off_road={resp.meta['off_road']} lane_inv={resp.meta['lane_invasion']}")
+    print(f"  ego_traj first/last: {resp.ego_traj[0]}  /  {resp.ego_traj[-1]}")
