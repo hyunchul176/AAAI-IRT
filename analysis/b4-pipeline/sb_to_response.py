@@ -39,6 +39,18 @@ from pathlib import Path
 from typing import Optional
 
 
+def is_cell_missing(resp: "CellResponse", max_skipped_actors: int = 1) -> bool:
+    """검토자 라운드 10 권고: 한 셀당 spawn skip 수가 임계 초과면 결측 마킹.
+
+    None 처리된 actor가 학습 분포 왜곡(RL agent state vector의 9개 0이 "차량
+    없다"로 학습)을 만들 수 있어, max_skipped_actors=1까지는 측정 모델 응답으로
+    받고 그 이상은 결측으로 본다. 본 격자 첫 10 cells에서 lift_dz별 분포를
+    측정한 뒤 임계를 자릿수로 좁힐 수 있다.
+    """
+    skip = int(resp.meta.get("skip_count", 0))
+    return skip > max_skipped_actors
+
+
 @dataclass
 class CellResponse:
     """한 셀 (AV π, 생성기 G, severity c, trial k)의 응답 한 행."""
@@ -53,6 +65,7 @@ class CellResponse:
     ego_traj: Optional[list] = field(default=None)   # (T, [x,y,vx,vy,heading])
     bg_traj: Optional[dict] = field(default=None)    # {bg_id: (T, [...])}, SafeBench hook 추가 후 채움
     meta: dict = field(default_factory=dict)         # cell_index·route·step·기타 진단 정보
+    skip_count: int = 0                              # spawn 재시도 실패 actor 수 (라운드 10)
 
 
 def _status_is_collision(status) -> bool:
@@ -71,7 +84,8 @@ def load_records(records_path) -> dict:
         return pickle.load(f)
 
 
-def extract_cell_response(records: dict, cell_index: int, cell_meta: dict) -> CellResponse:
+def extract_cell_response(records: dict, cell_index: int, cell_meta: dict,
+                          skip_count: int = 0) -> CellResponse:
     """records dict에서 한 셀(cell_index)을 CellResponse 한 행으로 변환.
 
     Args:
@@ -164,6 +178,12 @@ def extract_cell_response(records: dict, cell_index: int, cell_meta: dict) -> Ce
         run_red_light=bool(any(s.get("run_red_light") for s in steps)),
         bg_actor_meta=bg_actor_meta,
         bg_error_steps=bg_error_steps[:5],   # 처음 5개만 (디버그용)
+        # AAAI-IRT: 검토자 라운드 10이 짚은 spawn skip 카운트. carla_data_provider
+        # patch가 spawn 재시도 실패 시 None을 돌릴 때마다 += 1. run_one_cell.py가
+        # 한 셀 끝에 마커 파일(log/_aaai_skip_<exp>.txt)로 저장하고 collect 함수가
+        # 이 값을 cell meta에 적는다. max_skipped_actors 임계 비교는 호출자
+        # (run_g3_grid 또는 d-grid-validation)에서 결정.
+        skip_count=int(skip_count),
     )
 
     return CellResponse(

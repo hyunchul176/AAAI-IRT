@@ -19,6 +19,12 @@ from six import iteritems
 import carla
 
 
+# AAAI-IRT patch: module-level skip counter. spawn 재시도가 모두 실패해 None을
+# 돌릴 때마다 += 1. 한 셀 = 한 process이므로 process 종료 시 그 값을 마커
+# 파일로 저장하면 셀별 skip 수가 된다. run_one_cell.py가 atexit으로 처리.
+_aaai_skip_count = 0
+
+
 def calculate_velocity(actor):
     velocity_squared = actor.get_velocity().x**2
     velocity_squared += actor.get_velocity().y**2
@@ -559,6 +565,8 @@ class CarlaDataProvider(object):
             # 한 셀에 None 자리가 max_skipped_actors=1을 초과하면 그 셀을
             # 결측으로 마킹하는 임계는 orchestrator(run_g3_grid.py)가 본 격자
             # 진입 시 둔다(검토자 라운드 10이 짚은 학습 분포 왜곡 risk 완화).
+            global _aaai_skip_count
+            _aaai_skip_count += 1
             print("WARNING: AAAI-IRT skip - cannot spawn actor {} at {} after retries".format(
                 model, spawn_point.location))
             return None

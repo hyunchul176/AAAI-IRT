@@ -97,6 +97,28 @@ def main() -> int:
     )
     atexit.register(remove_cell_scenario_yaml, str(tree_root), tmp_scenario_yaml, args.tree)
 
+    # AAAI-IRT patch: 한 셀이 끝날 때 carla_data_provider의 module-level
+    # _aaai_skip_count를 records.pkl 옆 마커 파일로 저장. sb_to_response가
+    # 이 값을 cell meta의 skip_count에 넣고, max_skipped_actors 임계 비교는
+    # 호출자(run_g3_grid·d-grid-validation)가 본 격자 진입 시 결정한다.
+    def _save_skip_count() -> None:
+        try:
+            from safebench.scenario.scenario_manager import carla_data_provider as cdp
+            n = getattr(cdp, "_aaai_skip_count", 0)
+        except Exception:
+            return
+        # log/<exp_name>/<exp_name>_<av>_<g>_seed_<seed>/eval_results/aaai_skip_count.txt
+        # SafeBench log 자리 자체가 셀별로 자동 만들어지므로, 가장 안전한 자리는
+        # SafeBench root 안 임시 자리에 두고 orchestrator가 docker cp로 가져간다.
+        marker = tree_root / "log" / f"_aaai_skip_{args.exp_name}.txt"
+        try:
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text(str(n))
+        except Exception:
+            pass
+
+    atexit.register(_save_skip_count)
+
     if args.dry_run:
         sub = "safebench/scenario/config" if args.tree == "safebench" else "frea/scenario/config"
         tmp_path = tree_root / sub / tmp_scenario_yaml
