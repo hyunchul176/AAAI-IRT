@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-B4 응답 기록 어댑터 (decisions.html D-08).
+B4 응답 기록 어댑터 (decisions.html 응답표 변환 결정).
 
 SafeBench `scripts/run.py --mode eval` 실행이 끝나면
 `log/exp/<exp_name>/eval_results/` 아래에 두 파일을 남긴다:
@@ -16,7 +16,7 @@ SafeBench `scripts/run.py --mode eval` 실행이 끝나면
 
 이 어댑터가 records.pkl을 읽어 우리 측정 모델 식 (6)의 응답 한 행 CellResponse로
 변환한다. background 차량 시계열 궤적은 SafeBench 기본 logger에 없으므로
-(D-08 잔여 위험 노트 확인) `bg_traj` 필드는 None으로 두고, RSS 라벨러는
+(응답표 변환 결정의 잔여 위험 노트 확인) `bg_traj` 필드는 None으로 두고, RSS 라벨러는
 ego 단독으로는 회피불가 판정이 불가하니 u_label도 None으로 둔다. 본 격자
 진입 전 SafeBench carla_runner에 background trajectory hook 추가가 필요하다.
 

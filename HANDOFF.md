@@ -53,7 +53,7 @@ P(충돌) = u(G,c) + (1−u)·σ(a_G(β_G + γ_G·c − θ_π)), θ~N(0,1).
   LFR·over-critical 대안 중심 민감도 분석 + u=0 비교 보고.
 
 **B1 시뮬레이터: CARLA (SafeBench + FREA 스택) 단독 확정.**
-MetaDrive 보조 격자 안은 검토 후 채택하지 않음(논의·근거: research/decisions.html D-01).
+MetaDrive 보조 격자 안은 검토 후 채택하지 않음(논의·근거: research/decisions.html 시뮬레이터 선택 결정).
 SafeBench(NeurIPS 2022, CARLA **0.9.13 권장**, 도커)가 적대 생성 4종 + RL ego 에이전트 제공,
 FREA(CoRL 2024 Oral, github.com/CurryChen77/FREA)는 **SafeBench 포크**로
 반응형 CBV + LFR 네트워크 구현 (LFR = soft 라벨 대안 중심값). RSS 라벨은 Khan 2026의 CARLA 전례.
@@ -63,23 +63,26 @@ FREA(CoRL 2024 Oral, github.com/CurryChen77/FREA)는 **SafeBench 포크**로
 합성 트랙(A·D-study 코드)과 2단 구성, 완전한 결정론 기대하지 않음(반복 변동은 반응성의 일부).
 
 **실행 결정 트레일: research/decisions.html에 정식 기록 (동결).**
-D-01 시뮬레이터 단독 · D-02 진행 환경 · D-03 합격선 · D-04 split · D-05 격자 후보·severity 배치 ·
-D-06 AV planner(SafeBench RL 4종 + 규칙 기반 2종 + PlanT 2종) · D-07 생성기 G 매핑·severity 메커니즘 ·
-D-08 응답 어댑터·RSS 라벨링 · D-09 헤드리스 운용·2D BEV · D-10 Town·시드·timeout·날씨·step.
-잔여 위험 R-A(소표본) · R-B(작은 격자 split 검정력) · R-C(강건성 분산) · R-D(severity 단조성) ·
-R-E(u 분포) · R-F(BEV 디스크) · R-G(도커 인스턴스 수). 검토자 에이전트 7 라운드 검토-정정
+시뮬레이터 선택 (CARLA + SafeBench + FREA 단독) · 결정 트레일 보관 위치 · 격자 합격선 ·
+표본불변성 검증 절차 (split-half) · 격자 후보 범위와 severity 배치 ·
+평가 대상 AV 선정(SafeBench RL 4종 + 규칙 기반 2종 + PlanT 2종) ·
+시나리오 생성기와 severity 조절 · 응답표 변환과 RSS 라벨링 ·
+헤드리스 운용·2D BEV · 시드·시간·환경 통제 (Town·날씨·step).
+잔여 위험은 응시자 수 부족 · split-half 검정력 부족 · 강건성 분산 부족 ·
+severity 단조성 깨짐 · u 분포 쏠림 · 결과 파일 디스크 폭증 · GPU 인스턴스 수 일곱 가지.
+검토자 에이전트 7 라운드 검토-정정
 사이클을 거쳐 사실 오류·voice·환각·근거 없는 단정 약 50건이 본문에 박히기 전 잡혀 정정됨.
 메모리에는 reference 한 줄만 두고 본문은 이 페이지에서 본다.
 
 **D-study sweep: 완료** (`analysis/d-study/d_study.py sweep`, 32 코어 multiprocessing, 5h).
 격자 후보 81개 × severity 배치 2종(uniform·adaptive) × 1000 trial × 50 split = 162 조합 평가.
-결과: **162/162 모두 합격** (split r p25 ≥ 0.80, R-A 자연 해소). AV별 평균 p25:
+결과: **162/162 모두 합격** (split r p25 ≥ 0.80, 응시자 수 부족 위험 자연 해소). AV별 평균 p25:
 AV=4 0.881 · AV=6 0.908 · AV=8 0.927. severity 적응이 등간격보다 +0.006 평균 차이.
 **Ablation 결정적**: 가장 작은 격자(AV=4·G=3·sev=3·K=10)에서 정보적 사전 끄면 0.81→0.37,
 셀당 반복 K=5면 0.77로 둘 다 합격선 못 넘음(정보적 사전 + K≥10이 합격을 떠받침).
 **MH DIF false-discovery rate가 AV별로 평탄(평균 0.74)하고 명목 α=0.05보다 자릿수가 한 자리 위**:
-R-B 양적 증거가 아니라 MH 진단의 한계. R-B는 split r 자체로 답.
-**θ̂ CI 폭 8~18 범위**(평균 12)로 D-03 보조 합격선 0.5σ와 자릿수 다름: 시나리오 난이도는
+split-half 검정력 부족 위험의 양적 증거가 아니라 MH 진단의 한계. 검정력 답은 split r 자체로.
+**θ̂ CI 폭 8~18 범위**(평균 12)로 격자 합격선 결정의 보조 합격선 0.5σ와 자릿수 다름: 시나리오 난이도는
 안정적이나 개별 AV 강건성 정밀도는 본 격자에서 다시 평가.
 **본 격자 권고 셋**: AV=6·G=3·sev=3·K=10 (540 cells, 작은 안전, θ̂ CI=9.2),
 AV=6·G=4·sev=5·K=20 (2,400 cells, 중간), AV=8·G=4·sev=5·K=20 (3,200 cells, 큰).
@@ -101,14 +104,14 @@ private 전환 + Pro plan에서 private Pages 호스팅.
 
 ## 다음 할 일
 
-1. **B 단계 첫 작업: SafeBench 도커 + 한 셀 pilot** (R-F·R-G 측정).
+1. **B 단계 첫 작업: SafeBench 도커 + 한 셀 pilot** (결과 파일 디스크·GPU 인스턴스 수 위험 측정).
    SafeBench `bash external/SafeBench/docker/run_docker.sh`로 `safebench/safebench` 이미지 띄움
    (Docker Hub에 있는지 확인, 없으면 `docker build -t safebench/safebench external/SafeBench/docker/`).
    한 셀 rollout으로 wall-clock과 한 인스턴스 VRAM 점유 측정 → 본 격자 셋(540/2,400/3,200 cells)
    중 한 개를 권고로 좁힘. 이미 확인: docker 29.3.0 ✓, nvidia-container-toolkit ✓, RTX 4080 16GB ✓.
 2. **B 단계 본격**: SafeBench·FREA 체크포인트 재현·다운로드(SAC·LC만 동봉, DDPG·PPO·TD3 +
    AdvSim·AdvTraj·NF 직접 학습 필요, PlanT 본체 Google Drive 695 MB), B4 파이프라인
-   stub 본문 채움(sb_to_response·bev_wrapper·rss_labeler), R-C·R-D·R-E pilot.
+   stub 본문 채움(sb_to_response·bev_wrapper·rss_labeler), 강건성 분산·severity 단조성·u 분포 pilot.
 3. **C 단계 격자 실행**: 본 격자 위에 SafeBench 도커 병렬로 응답표 수집.
 4. **D 단계 검증**: D1(순위 역전 재현)·D2(표본불변, 본문 핵심)·D3(ablation)·D4(외적 타당성).
 5. **E 단계 원고**: AAAI 메인 트랙 형식.

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-즉시 B 단계 G=3 격자 실행 orchestrator (decisions.html D-05 두 단계 진입).
+즉시 B 단계 G=3 격자 실행 orchestrator (decisions.html 격자 후보 결정의 두 단계 진입).
 
 격자: AV 6명 × G 3종 × severity 5수준 × 셀당 반복 K=20 = 1,800 cells
     AV (즉시 사용 가능, 학습 없이):
@@ -16,7 +16,7 @@
         - ordinary (SafeBench 비적대 baseline)
     severity: SafeBench scenario는 severity 변수를 노출하지 않으므로
         해당 정책의 hyperparameter(attack budget, perturbation magnitude 등)
-        5수준으로 매핑한다 (D-07). 우선 c 값을 SafeBench yaml override로 주입.
+        5수준으로 매핑한다 (생성기·severity 결정). 우선 c 값을 SafeBench yaml override로 주입.
     K=20: 한 (AV, G, c) 셀을 시드를 달리해 20회 반복.
 
 이 orchestrator는 위 1,800 cells을 SafeBench eval mode로 자동 순환 실행한다.
@@ -43,7 +43,7 @@ from pathlib import Path
 from typing import Iterable
 
 
-# ===== 격자 정의 (D-05 즉시 격자) =====
+# ===== 격자 정의 (격자 후보 결정의 즉시 격자) =====
 AV_LIST = ["sac", "basic", "behavior", "plant", "expert", "expert_disturb"]
 G_LIST  = ["lc", "fppo_adv", "ordinary"]
 C_LEVELS = [0.0, 1.0, 2.0, 3.0, 4.0]
@@ -59,7 +59,7 @@ class Cell:
 
     @property
     def seed(self) -> int:
-        # decisions.html D-10: deterministic seed across processes.
+        # decisions.html 시드·시간·환경 결정: deterministic seed across processes.
         # Python's built-in hash() is salted per process (PEP 456), so we use a
         # stable hashlib digest of a canonical string and take the low 31 bits.
         key = f"{self.av_id}|{self.g_id}|{self.c:.6f}|{self.trial_k}".encode("utf-8")
@@ -145,7 +145,7 @@ def run_one_cell(cell: Cell, container: str, port: int, tm_port: int,
         return dict(cell=asdict(cell), cmd=docker_cmd, dry_run=True)
     t0 = time.time()
     with open(log_path, "w") as f:
-        # D-10 셀당 timeout 권고 60초의 2배(120초)를 wall-clock 상한으로 둠
+        # 시드·시간·환경 결정의 셀당 timeout 권고 60초의 2배(120초)를 wall-clock 상한으로 둠
         # (rollout 자체는 60초로 종료되고, 추가 60초는 docker exec·env init).
         p = subprocess.run(docker_cmd, stdout=f, stderr=subprocess.STDOUT,
                            timeout=120)

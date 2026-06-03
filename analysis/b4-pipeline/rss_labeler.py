@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-RSS 라벨러 후처리 (decisions.html D-08 + A4 결정).
+RSS 라벨러 후처리 (decisions.html 응답표 변환 결정 + A4 결정).
 
 한 충돌 셀에 회피불가 하한 u(0~1)를 부여한다. 우리 측정 모델 식 (6)의
 P(충돌) = u + (1 − u)·σ(a·(β + γc − θ)) 우변에서 u가 곧 이 라벨이다.
@@ -22,7 +22,7 @@ soft 라벨링 (A4 결정):
     u = 1 − max(0, min(1, max(d_long_min − d_long, d_lat_min − d_lat) / scale))
     또는 RSS 위반량을 logistic으로 [0,1]에 매핑.
 
-파라미터 (D-08 결정):
+파라미터 (응답표 변환 결정):
     RSS 원문 (Shalev-Shwartz 2017) §3 default + Liu(2021)·Xu(2021) 실주행
     보정값을 민감도로 같이 보고. Khan(2026)은 종방향만 적용한 전례라
     횡방향·교차 시나리오는 RSS 원문을 직접 따라간다.
@@ -99,7 +99,7 @@ def rss_label(
 
     Notes:
         - bg_traj가 비어 있으면 RSS 계산 불가 → ValueError. SafeBench의
-          background trajectory hook이 필요(D-08 잔여 위험 노트).
+          background trajectory hook이 필요(응답표 변환 결정의 잔여 위험 노트).
         - 충돌 상대 actor 결정 로직: collision_t 직전 가장 가까운 bg actor.
         - 종·횡 두 위반량 중 큰 쪽 (=ego가 더 명확히 어긴 쪽)을 기준.
     """

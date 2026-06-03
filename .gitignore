@@ -26,6 +26,7 @@ analysis/d-study/__pycache__/
 # Other analysis sweep artifacts that may grow large
 analysis/**/*.log
 analysis/**/sweep_*.json
+analysis/b4-pipeline/g3_logs/
 
 # Python cache / build
 __pycache__/

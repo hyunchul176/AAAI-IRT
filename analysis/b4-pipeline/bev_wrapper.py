@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-BEV wrapper (decisions.html D-09).
+BEV wrapper (decisions.html 헤드리스·BEV 결정).
 
 SafeBench는 이미 pygame 기반 BEV 렌더러를 갖고 있다:
 - `safebench/gym_carla/envs/render.py:372` class BirdeyeRender
@@ -10,17 +10,17 @@ SafeBench는 이미 pygame 기반 BEV 렌더러를 갖고 있다:
 
 이 wrapper는 위 메커니즘을 그대로 활용해 셀 단위 MP4를 만든다. 직접 그림
 그리기(matplotlib 등)는 SafeBench에 이미 있는 것을 재구현하는 헛수고라 채택
-하지 않는다(D-09 결정).
+하지 않는다(헤드리스·BEV 결정).
 
-저장 모드 세 가지 (D-09):
+저장 모드 세 가지 (헤드리스·BEV 결정):
     'all'             : 모든 셀의 frame을 rollout 끝에 한 번 MP4로 저장
     'every_n'         : N번째 셀마다만 저장 (디스크 부담 줄임)
     'collisions_only' : 충돌이 발생한 셀에 한해서만 저장
     'off'             : BEV 저장 끔
 
-저장은 rollout 끝에 한 번만 호출해 D-10의 셀 timeout을 BEV I/O가 깎지 않게
+저장은 rollout 끝에 한 번만 호출해 시드·시간·환경 결정의 셀 timeout을 BEV I/O가 깎지 않게
 한다. SafeBench VideoRecorder.save가 default `num_scenario=2` 묶음 단위라
-`num_scenario=1`로 강제하거나 data_ids별 frame_list 분리가 필요하다(D-09).
+`num_scenario=1`로 강제하거나 data_ids별 frame_list 분리가 필요하다(헤드리스·BEV 결정).
 
 헤드리스 운용: SafeBench README가 요구하는 대로
     SDL_VIDEODRIVER="dummy" python scripts/run.py ...
