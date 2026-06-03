@@ -84,7 +84,7 @@ def run_cell(cell: PilotCell, container: str, dry_run: bool, log_dir: Path) -> d
     scenario_cfg = G_SCENARIO_CFG[cell.g_id]["yaml"]
     agent_cfg = f"{cell.ego}.yaml"
     cmd_inside = (
-        "SDL_VIDEODRIVER=dummy "
+        "export SDL_VIDEODRIVER=dummy && "
         "cd /home/safebench/SafeBench && "
         "python aaai_orchestrator/run_one_cell.py "
         "--safebench-root /home/safebench/SafeBench --tree safebench "
