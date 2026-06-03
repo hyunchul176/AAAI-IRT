@@ -26,7 +26,20 @@ from typing import Callable
 # 들어간다. pilot 전에는 비워 두고, severity injector는 c_value가 매핑에 없으면
 # 명시적으로 NotImplementedError를 던지도록 한다(silent fallback 금지).
 SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
-    "lc": {},          # 예: {0.0: {"sigma_scale": 0.3}, 1.0: {"sigma_scale": 0.6}, ...}
+    # LC(REINFORCE init-state policy)의 c 다이얼 후보. 검토자 라운드 10이 짚은
+    # 자리로, 매 시나리오 시작 위치 한 번 결정에서 c 5수준을 만들 자리는
+    # sample_action의 Gaussian σ에 곱하는 sigma_scale 한 자리 변수다. 가설
+    # 1(sigma 작음 → 학습된 mu 근처 결정 → 공격력 증가)을 1차 후보로 박고,
+    # 단조성 pilot 2차에서 ρ ≥ 0.7 미달이면 가설 2(sigma 큼 → mu 분포 tail의
+    # 극단적 공격 위치 sample)로 반전 시도. method.html 식 (6) γ_G·c와 정합한
+    # 자리는 sigma_scale 단일 변수 다이얼이지만 단조성 방향 자체는 가설.
+    "lc": {
+        0.0: {"sigma_scale": 2.0},
+        1.0: {"sigma_scale": 1.5},
+        2.0: {"sigma_scale": 1.0},
+        3.0: {"sigma_scale": 0.7},
+        4.0: {"sigma_scale": 0.5},
+    },
     "nf": {},          # 예: {0.0: {"flow_sigma": 0.5}, ...}
     "advsim": {},      # parameters 인덱스(data_id) 통제, 별도 매핑 필요 없음
     "advtraj": {},     # 같음

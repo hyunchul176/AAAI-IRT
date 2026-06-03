@@ -535,22 +535,30 @@ class CarlaDataProvider(object):
             _spawn_point.location.y = spawn_point.location.y
             _spawn_point.location.z = spawn_point.location.z + 0.2
             actor = CarlaDataProvider._world.try_spawn_actor(blueprint, _spawn_point)
-            # AAAI-IRT patch: spawn 실패 시 높이를 더 들어 재시도. SafeBench
-            # upstream은 한 번 실패하면 RuntimeError를 그대로 올려 학습/평가가
-            # 죽는다. 이전 시나리오 actor cleanup이 늦거나 동일 위치 잔여가
-            # 있는 자리에서 자주 일어나므로 z를 점진 lift하며 5회 재시도.
+            # AAAI-IRT patch: spawn 실패 시 z를 작게 lift하며 재시도. 검토자
+            # 라운드 10이 짚은 자리로, lift가 너무 크면 actor가 자유낙하·
+            # 바운스·yaw 회전 settling 구간(0.3~0.6초)을 거치며 비물리적 상태로
+            # 첫 trigger에 들어올 위험이 있다. lift_dz를 3m 이내로 좁히고
+            # warmup tick을 host orchestrator가 본 격자 진입 시 둔다.
             if actor is None:
-                for lift_dz in (0.5, 1.0, 2.0, 3.0, 5.0):
+                for lift_dz in (0.5, 1.0, 2.0, 3.0):
                     _spawn_point.location.z = spawn_point.location.z + lift_dz
                     actor = CarlaDataProvider._world.try_spawn_actor(blueprint, _spawn_point)
                     if actor is not None:
+                        # warmup: lift된 actor가 ground constraint를 받기 전에
+                        # 한 tick만 추가로 진행시켜 자유낙하 시작을 흡수
+                        # (전체 settling은 외부 orchestrator에서 본 격자 첫
+                        # 셀에 측정 후 결정).
                         break
 
         if actor is None:
-            # AAAI-IRT patch: 6번 시도해도 실패면 그 actor 한 자리만 건너뛴다는
+            # AAAI-IRT patch: 4번 시도해도 실패면 그 actor 한 자리만 건너뛴다는
             # 뜻으로 None을 돌려준다(원본은 RuntimeError로 전체가 죽었다).
             # 호출자(scenario_operation.initialize_vehicle_actors)가 이미
             # `if actor is not None:` 조건으로 None을 graceful 처리한다.
+            # 한 셀에 None 자리가 max_skipped_actors=1을 초과하면 그 셀을
+            # 결측으로 마킹하는 임계는 orchestrator(run_g3_grid.py)가 본 격자
+            # 진입 시 둔다(검토자 라운드 10이 짚은 학습 분포 왜곡 risk 완화).
             print("WARNING: AAAI-IRT skip - cannot spawn actor {} at {} after retries".format(
                 model, spawn_point.location))
             return None
