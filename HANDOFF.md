@@ -62,20 +62,56 @@ FREA(CoRL 2024 Oral, github.com/CurryChen77/FREA)는 **SafeBench 포크**로
 0.9.13을 도커로 별도 띄우는 것이 안전(SafeBench docker/run_docker.sh 제공).
 합성 트랙(A·D-study 코드)과 2단 구성, 완전한 결정론 기대하지 않음(반복 변동은 반응성의 일부).
 
-**실행 결정 트레일: research/decisions.html에 정식 기록.**
-시뮬레이터 선택, 진행 환경, D-study 신뢰도 기준·split 방식·격자 후보·severity 배치까지
-다섯 결정과 두 잔여 위험이 산문 단락으로 적혀 있음(D-01 ~ D-05 + R-A·R-B).
+**실행 결정 트레일: research/decisions.html에 정식 기록 (동결).**
+D-01 시뮬레이터 단독 · D-02 진행 환경 · D-03 합격선 · D-04 split · D-05 격자 후보·severity 배치 ·
+D-06 AV planner(SafeBench RL 4종 + 규칙 기반 2종 + PlanT 2종) · D-07 생성기 G 매핑·severity 메커니즘 ·
+D-08 응답 어댑터·RSS 라벨링 · D-09 헤드리스 운용·2D BEV · D-10 Town·시드·timeout·날씨·step.
+잔여 위험 R-A(소표본) · R-B(작은 격자 split 검정력) · R-C(강건성 분산) · R-D(severity 단조성) ·
+R-E(u 분포) · R-F(BEV 디스크) · R-G(도커 인스턴스 수). 검토자 에이전트 7 라운드 검토-정정
+사이클을 거쳐 사실 오류·voice·환각·근거 없는 단정 약 50건이 본문에 박히기 전 잡혀 정정됨.
 메모리에는 reference 한 줄만 두고 본문은 이 페이지에서 본다.
+
+**D-study sweep: 완료** (`analysis/d-study/d_study.py sweep`, 32 코어 multiprocessing, 5h).
+격자 후보 81개 × severity 배치 2종(uniform·adaptive) × 1000 trial × 50 split = 162 조합 평가.
+결과: **162/162 모두 합격** (split r p25 ≥ 0.80, R-A 자연 해소). AV별 평균 p25:
+AV=4 0.881 · AV=6 0.908 · AV=8 0.927. severity 적응이 등간격보다 +0.006 평균 차이.
+**Ablation 결정적**: 가장 작은 격자(AV=4·G=3·sev=3·K=10)에서 정보적 사전 끄면 0.81→0.37,
+셀당 반복 K=5면 0.77로 둘 다 합격선 못 넘음(정보적 사전 + K≥10이 합격을 떠받침).
+**MH DIF false-discovery rate가 AV별로 평탄(평균 0.74)하고 명목 α=0.05보다 자릿수가 한 자리 위**:
+R-B 양적 증거가 아니라 MH 진단의 한계. R-B는 split r 자체로 답.
+**θ̂ CI 폭 8~18 범위**(평균 12)로 D-03 보조 합격선 0.5σ와 자릿수 다름: 시나리오 난이도는
+안정적이나 개별 AV 강건성 정밀도는 본 격자에서 다시 평가.
+**본 격자 권고 셋**: AV=6·G=3·sev=3·K=10 (540 cells, 작은 안전, θ̂ CI=9.2),
+AV=6·G=4·sev=5·K=20 (2,400 cells, 중간), AV=8·G=4·sev=5·K=20 (3,200 cells, 큰).
+θ̂ CI 더 줄이는 옵션: AV=6·G=5·sev=3·K=10 (900 cells, θ̂ CI=8.2).
+결과 페이지: `research/d-study.html` (Fig 1~6 PNG 포함).
+
+**B4 응답 기록 파이프라인: stub 작성** (`analysis/b4-pipeline/`).
+sb_to_response.py (CellResponse dataclass + extract/append/collect 함수 시그니처),
+bev_wrapper.py (BEVCellRecorder class, 4 저장 모드),
+rss_labeler.py (RSS Shalev-Shwartz 2017 §3 종/횡 안전거리 + 대안 중심값 LFR·over_critical).
+함수 본문은 NotImplementedError, B 단계 첫 작업에서 채움.
+
+**사이트 구조 (GitHub Pages 임시 public + robots.txt 검색 차단)**:
+URL <https://hyunchul176.github.io/AAAI-IRT/> → plan.html이 메인.
+공개 6 페이지: plan(메인) · lit-review · roadmap · method · d-study 결과 · 정독 카드(review/).
+로컬만(`.gitignore`): research/decisions.html · research/questions-log.html · research/index.html.
+GitHub Education 승인되면 `gh api -X PATCH repos/hyunchul176/AAAI-IRT -f visibility=private`로
+private 전환 + Pro plan에서 private Pages 호스팅.
 
 ## 다음 할 일
 
-1. **D-study 코드 작성** (`analysis/d-study/d_study.py` + 결과 페이지 `research/d-study.html`).
-   격자 후보 범위, 주 신뢰도 기준과 합격선, split 방식, severity 배치(등간격+적응),
-   ablation(정보적 사전·적응·반복) 모두 research/decisions.html D-03 ~ D-05에 결정됨.
-   잔여 위험 R-A(AV=12도 IRT 표본 관행에서 작음) · R-B(AV<6 격자 split 무의미)는
-   D-study 결과가 답해야 할 부분 (decisions.html 하단).
-2. B 단계 설치(리눅스): CARLA 0.9.13(SafeBench·FREA 권장) + SafeBench + FREA(FREA = SafeBench 포크). 도커 권장. 사용자 호스트 0.9.16과 별도.
-3. 이후: C(격자 실험) → D(검증: D1 순위 역전 재현, D2 표본불변, D3 ablation, D4 외적 타당성) → E(원고).
+1. **B 단계 첫 작업: SafeBench 도커 + 한 셀 pilot** (R-F·R-G 측정).
+   SafeBench `bash external/SafeBench/docker/run_docker.sh`로 `safebench/safebench` 이미지 띄움
+   (Docker Hub에 있는지 확인, 없으면 `docker build -t safebench/safebench external/SafeBench/docker/`).
+   한 셀 rollout으로 wall-clock과 한 인스턴스 VRAM 점유 측정 → 본 격자 셋(540/2,400/3,200 cells)
+   중 한 개를 권고로 좁힘. 이미 확인: docker 29.3.0 ✓, nvidia-container-toolkit ✓, RTX 4080 16GB ✓.
+2. **B 단계 본격**: SafeBench·FREA 체크포인트 재현·다운로드(SAC·LC만 동봉, DDPG·PPO·TD3 +
+   AdvSim·AdvTraj·NF 직접 학습 필요, PlanT 본체 Google Drive 695 MB), B4 파이프라인
+   stub 본문 채움(sb_to_response·bev_wrapper·rss_labeler), R-C·R-D·R-E pilot.
+3. **C 단계 격자 실행**: 본 격자 위에 SafeBench 도커 병렬로 응답표 수집.
+4. **D 단계 검증**: D1(순위 역전 재현)·D2(표본불변, 본문 핵심)·D3(ablation)·D4(외적 타당성).
+5. **E 단계 원고**: AAAI 메인 트랙 형식.
 
 ## 작업 규칙 (CLAUDE.md가 원본, 자주 틀리는 것만 재강조)
 
@@ -97,9 +133,19 @@ FREA(CoRL 2024 Oral, github.com/CurryChen77/FREA)는 **SafeBench 포크**로
 - PDF 도구: poppler-utils(pdftoppm, pdftotext, pdfinfo) ✓ 설치됨.
   **ImageMagick은 미설치**: 정독 카드 figure 크롭 전에 `sudo apt install imagemagick` 필요(사용자 비번 요).
 - A 코드 실행 예: `PYTHONIOENCODING=utf-8 python3 analysis/a1-identifiability/a1_recovery.py`
-  (그림은 research/assets/a1/에 저장됨)
+  (그림은 research/assets/a1/에 저장됨).
+- D-study sweep 재실행: `PYTHONIOENCODING=utf-8 python3 analysis/d-study/d_study.py sweep`
+  (5h, 32 코어). 그림 재생성: `python3 analysis/d-study/make_figures.py`.
 - Elsevier 전문/figure API: 키는 `~/.config/research_keys.env` (아래 참조).
   사용 예는 transcripts나 review 카드 작업 이력 참조 (X-ELS-APIKey 헤더, content/object/eid/...-grN_lrg.jpg).
+- **B 단계 환경 (이미 잡힘)**: docker 29.3.0 ✓, nvidia-container-toolkit ✓, RTX 4080 16GB ✓,
+  CARLA 0.9.16 native ~/carla_0916/ (참고용; SafeBench 도커가 0.9.13 별도로 띄움).
+  SafeBench/FREA 코드는 `external/SafeBench/`·`external/FREA/`에 clone돼 있음(`.gitignore` 처리).
+- **검토자 에이전트**: 정식 등록 `.claude/agents/research-reviewer.md` (model=opus, read-only tools).
+  큰 결정·결과 페이지가 한 매듭 지을 때 호출하면 사실 오류·voice·환각·근거 없는 단정을
+  찾아 줌. 직전 결정 페이지 + d-study 결과 작성에서 약 50건 잡힘. 다음 세션에서
+  Agent({subagent_type: "research-reviewer", ...}) 호출 가능 (현재 세션에서는 호출 시점
+  이전 등록이라 우회로 general-purpose에 동일 프롬프트 넘김).
 
 ## 이전 완료 상태 (2026-06-02 리눅스 이관)
 
