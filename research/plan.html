@@ -19,9 +19,19 @@
 
     <button class="theme-toggle" type="button">☾ 다크 모드</button>
 
+    <nav class="site-nav">
+      <a href="plan.html" class="active"><span class="ic">▣</span> 연구 계획 (Plan)</a>
+      <a href="lit-review.html"><span class="ic">▤</span> 문헌 검토 (Lit Review)</a>
+      <a href="roadmap.html"><span class="ic">▶</span> 수행 로드맵 (Roadmap)</a>
+      <a href="method.html"><span class="ic">∑</span> 방법 형식화 (Method)</a>
+      <a href="d-study.html"><span class="ic">◎</span> D-study 결과</a>
+      <a href="review/index.html"><span class="ic">▥</span> 정독 카드</a>
+    </nav>
+
     <div class="toc-label">이 페이지 목차</div>
     <ul class="toc">
       <li><a href="#summary">한 줄 요약</a></li>
+      <li><a href="#progress">지금 어디까지 왔나</a></li>
       <li><a href="#background">1 · 배경</a></li>
       <li><a href="#need">2 · 문제와 필요성</a></li>
       <li><a href="#aim">3 · 연구 목적</a></li>
@@ -30,16 +40,6 @@
       <li><a href="#approach">6 · 접근 개요</a></li>
       <li><a href="#scope">7 · 범위 · 가정 · 경계</a></li>
       <li><a href="#position">8 · 관련 연구 위치</a></li>
-    </ul>
-
-    <div class="toc-label">다른 문서</div>
-    <ul class="toc">
-      <li><a href="method.html">방법 형식화 (Method)</a></li>
-      <li><a href="roadmap.html">연구 수행 로드맵 (Roadmap)</a></li>
-      <li><a href="decisions.html">결정 로그 (Decisions)</a></li>
-      <li><a href="d-study.html">D-study 결과</a></li>
-      <li><a href="lit-review.html">문헌 검토 (원고용 요약)</a></li>
-      <li><a href="review/index.html">Literature Review (설계용 정독)</a></li>
     </ul>
   </aside>
 
@@ -56,6 +56,9 @@
         <span><b>자원</b> 제약 없음 (클라우드)</span>
       </div>
     </header>
+
+    <h2 id="progress">지금 어디까지 왔나</h2>
+    <p><a href="lit-review.html">문헌 검토</a> 다섯 부분 30편 정독과 <a href="method.html">방법 형식화</a> 식 (6)이 끝났고, A 단계 모델 확정 네 항목(식별가능성·추정 절차·공변량·라벨러)이 합성 데이터에서 모두 검증됐다(복원 r 0.95~0.99). 시뮬레이터 선택(CARLA 0.9.13 + SafeBench + FREA)부터 시뮬레이터 운용(Town·시드·timeout)까지 운용 결정 열 가지와 잔여 위험 일곱 가지를 정리한 뒤, D-study 격자 sweep(격자 후보 81개 × severity 배치 2종 × 1000 trial × 50 split)을 5시간 돌려 <a href="d-study.html">D-study 결과</a>에서 <span class="mark">162 조합 모두 합격선 r ≥ 0.80을 통과(소표본 우려 자연 해소)</span>함을 확인했다. 본 격자 권고 셋(AV=6·G=3·sev=3·K=10 = 540 cells, AV=6·G=4·sev=5·K=20 = 2,400 cells, AV=8·G=4·sev=5·K=20 = 3,200 cells)이 추려졌고, ablation에서 정보적 사전과 셀당 반복 K ≥ 10이 그 합격을 결정적으로 떠받친다는 양적 증거(사전 끄면 r p25가 0.81에서 0.37로 자릿수 하락)가 함께 나왔다. 다음 단계는 B 단계 인프라 구축으로, SafeBench + FREA 도커 이미지를 4080에서 띄워 한 셀 wall-clock과 한 인스턴스 VRAM 점유를 측정한 뒤 본 격자 한 개를 권고로 좁히고, 응답 어댑터·BEV wrapper·RSS 라벨러를 세워 본 격자 실행으로 들어간다. 상세 단계는 <a href="roadmap.html">수행 로드맵</a>을 참조한다.</p>
 
     <!-- 1 -->
     <h2 id="background"><span class="num">1</span>배경</h2>

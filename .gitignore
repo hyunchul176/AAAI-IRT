@@ -50,3 +50,9 @@ Thumbs.db
 # Review figures extracted from external papers — user opted to include for full
 # rendering of lit-review pages on GitHub Pages. Treat as fair-use academic excerpts.
 # research/review/images/
+
+# Internal-only pages — managed locally with Claude, not exposed on GitHub Pages.
+# Decisions log, query log, and the (deprecated) old research overview page.
+research/decisions.html
+research/questions-log.html
+research/index.html
