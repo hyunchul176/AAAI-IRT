@@ -334,6 +334,10 @@ class RouteScenario():
 
     @staticmethod
     def _get_actor_state(actor):
+        # AAAI-IRT patch: carla_data_provider 패치가 spawn 실패 시 None을 돌려
+        # other_actors에 None이 섞일 수 있음. None은 0으로 채운 placeholder 반환.
+        if actor is None:
+            return [0.0] * 9
         actor_trans = actor.get_transform()
         actor_x = actor_trans.location.x
         actor_y = actor_trans.location.y
