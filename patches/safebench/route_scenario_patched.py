@@ -221,6 +221,37 @@ class RouteScenario():
         for _actor in new_actors:
             self.background_actors.append(_actor)
 
+    def _aaai_collect_bg_trajectories(self):
+        """AAAI-IRT D-08 hook (2026-06-03): collect non-ego vehicle state.
+
+        SafeBench's default logger persists ego state per step into records.pkl
+        but skips background / adversarial vehicles. Our RSS soft labeller
+        (analysis/b4-pipeline/rss_labeler.py) needs both ego and the colliding
+        actor's trajectory. This method snapshots every alive vehicle except
+        ego and is appended to running_status so it ends up in records.pkl.
+        """
+        try:
+            world = CarlaDataProvider.get_world()
+            ego_id = self.ego_vehicle.id if self.ego_vehicle else -1
+            snapshot = []
+            for v in world.get_actors().filter("vehicle.*"):
+                if not v.is_alive or v.id == ego_id:
+                    continue
+                loc = v.get_location()
+                rot = v.get_transform().rotation
+                snapshot.append({
+                    "id": v.id,
+                    "type": v.type_id,
+                    "role": v.attributes.get("role_name", "unknown"),
+                    "x": loc.x,
+                    "y": loc.y,
+                    "velocity": CarlaDataProvider.get_velocity(v),
+                    "yaw": rot.yaw,
+                })
+            return snapshot
+        except Exception:
+            return []
+
     def get_running_status(self, running_record):
         running_status = {
             'ego_velocity': CarlaDataProvider.get_velocity(self.ego_vehicle),
@@ -233,7 +264,10 @@ class RouteScenario():
             'ego_roll': CarlaDataProvider.get_transform(self.ego_vehicle).rotation.roll,
             'ego_pitch': CarlaDataProvider.get_transform(self.ego_vehicle).rotation.pitch,
             'ego_yaw': CarlaDataProvider.get_transform(self.ego_vehicle).rotation.yaw,
-            'current_game_time': GameTime.get_time()
+            'current_game_time': GameTime.get_time(),
+            # AAAI-IRT D-08 hook (2026-06-03): non-ego vehicle trajectories so
+            # records.pkl carries enough info for our RSS soft labeller.
+            'bg_trajectories': self._aaai_collect_bg_trajectories(),
         }
 
         for criterion_name, criterion in self.criteria.items():
