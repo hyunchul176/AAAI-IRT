@@ -25,7 +25,7 @@
 analysis/b4-pipeline/sb_to_response.py의 collect_grid_responses로 JSONL.
 
 본 격자(G=4) 확장은 PPO·DDPG·TD3·AdvSim·AdvTraj·NF 자체 학습이 완료된
-뒤(현재 PPO만 진행 중) 별도 orchestrator로.
+뒤 별도 orchestrator로(학습 진행 상태는 별도 추적).
 
 사용:
     python3 analysis/b4-pipeline/run_g3_grid.py --container sb-grid --dry-run
@@ -34,6 +34,7 @@ analysis/b4-pipeline/sb_to_response.py의 collect_grid_responses로 JSONL.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import time
@@ -58,9 +59,12 @@ class Cell:
 
     @property
     def seed(self) -> int:
-        # decisions.html D-10: hash(AV, G, c, k) mod 2**31
-        h = hash((self.av_id, self.g_id, round(self.c, 3), self.trial_k))
-        return h % (2 ** 31)
+        # decisions.html D-10: deterministic seed across processes.
+        # Python's built-in hash() is salted per process (PEP 456), so we use a
+        # stable hashlib digest of a canonical string and take the low 31 bits.
+        key = f"{self.av_id}|{self.g_id}|{self.c:.6f}|{self.trial_k}".encode("utf-8")
+        digest = hashlib.blake2b(key, digest_size=8).digest()
+        return int.from_bytes(digest, "little") % (2 ** 31)
 
     @property
     def exp_name(self) -> str:
@@ -75,36 +79,50 @@ def iter_cells() -> Iterable[Cell]:
                     yield Cell(av_id=av, g_id=g, c=c, trial_k=k)
 
 
-# ===== SafeBench 실행 명령 =====
-# AV → SafeBench --agent_cfg 매핑
-AV_TO_AGENT_CFG = {
-    "sac": "sac.yaml",
-    "basic": "basic.yaml",
-    "behavior": "behavior.yaml",
-    "plant": "plant.yaml",          # FREA 측 cfg, patches에서 별도 셋업 필요
-    "expert": "expert.yaml",
-    "expert_disturb": "expert_disturb.yaml",
+# ===== SafeBench/FREA 실행 명령 =====
+# AV·G cfg는 두 트리에 나뉘어 있다:
+#   SafeBench tree: external/SafeBench/safebench/{agent,scenario}/config/
+#   FREA tree    : external/FREA/frea/{agent,scenario}/config/
+# B 단계 첫 작업 검토 결과(2026-06-03) FREA 측 cfg(plant/expert/expert_disturb/
+# fppo_adv)는 SafeBench scripts/run.py가 곧장 못 읽으므로 FREA 컨테이너 또는
+# FREA cfg가 stage된 SafeBench 컨테이너에서 별도 실행해야 한다. 격자 진입 시
+# 두 그룹으로 나눠 각각의 cwd·entrypoint로 보낸다.
+AGENT_CFG = {
+    "sac":            ("safebench", "sac.yaml"),
+    "basic":          ("safebench", "basic.yaml"),
+    "behavior":       ("safebench", "behavior.yaml"),
+    "plant":          ("frea",      "plant.yaml"),
+    "expert":         ("frea",      "expert.yaml"),
+    "expert_disturb": ("frea",      "expert_disturb.yaml"),
 }
-
-# G → SafeBench --scenario_cfg 매핑
-G_TO_SCENARIO_CFG = {
-    "lc": "LC.yaml",
-    "fppo_adv": "fppo_adv_eval.yaml",  # FREA 측 cfg
-    "ordinary": "ordinary.yaml",
+SCENARIO_CFG = {
+    "lc":       ("safebench", "LC.yaml"),
+    "fppo_adv": ("frea",      "fppo_adv_eval.yaml"),
+    "ordinary": ("safebench", "ordinary.yaml"),
 }
 
 
 def safebench_cmd(cell: Cell, port: int = 2000, tm_port: int = 8000) -> str:
-    """한 셀을 SafeBench로 평가하는 컨테이너 내부 명령. --seed로 trial 시드.
-    SafeBench의 --scenario_cfg yaml에 severity hyperparameter를 c로 override
-    하는 일은 별도 helper(rewrite_yaml_with_c)에서 처리한다.
+    """한 셀을 컨테이너 내부에서 평가하는 명령. AV·G가 같은 트리(safebench
+    또는 frea)에 있을 때 그 트리의 entrypoint로 실행한다. 두 트리가 섞이면
+    별도 stage가 필요하므로 ValueError로 알려 본 격자 실행 전에 처리한다.
     """
+    av_tree, av_cfg = AGENT_CFG[cell.av_id]
+    g_tree, g_cfg   = SCENARIO_CFG[cell.g_id]
+    if av_tree != g_tree:
+        raise ValueError(
+            f"AV({cell.av_id}@{av_tree}) and G({cell.g_id}@{g_tree}) live in "
+            f"different repos; orchestrate after staging or run via FREA tree"
+        )
+    if av_tree == "safebench":
+        cwd, entry = "/home/safebench/SafeBench", "scripts/run.py"
+    else:
+        cwd, entry = "/home/safebench/FREA", "scripts/run.py"
     return (
         "SDL_VIDEODRIVER=dummy "
-        "cd /home/safebench/SafeBench && "
-        "python scripts/run.py "
-        f"--agent_cfg {AV_TO_AGENT_CFG[cell.av_id]} "
-        f"--scenario_cfg {G_TO_SCENARIO_CFG[cell.g_id]} "
+        f"cd {cwd} && "
+        f"python {entry} "
+        f"--agent_cfg {av_cfg} --scenario_cfg {g_cfg} "
         "--mode eval --num_scenario 1 "
         f"--seed {cell.seed} "
         f"--port {port} --tm_port {tm_port} "
@@ -127,8 +145,10 @@ def run_one_cell(cell: Cell, container: str, port: int, tm_port: int,
         return dict(cell=asdict(cell), cmd=docker_cmd, dry_run=True)
     t0 = time.time()
     with open(log_path, "w") as f:
+        # D-10 셀당 timeout 권고 60초의 2배(120초)를 wall-clock 상한으로 둠
+        # (rollout 자체는 60초로 종료되고, 추가 60초는 docker exec·env init).
         p = subprocess.run(docker_cmd, stdout=f, stderr=subprocess.STDOUT,
-                           timeout=120)  # D-10: 셀당 60초 권고, 안전 margin 2배
+                           timeout=120)
     return dict(cell=asdict(cell), rc=p.returncode, wall_sec=time.time() - t0,
                 log=str(log_path))
 

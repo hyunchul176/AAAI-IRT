@@ -118,14 +118,22 @@ def extract_cell_response(records: dict, cell_index: int, cell_meta: dict) -> Ce
 
     # background trajectory 추출. patches/safebench/route_scenario_patched.py가
     # 적용된 컨테이너의 records.pkl에는 step dict에 'bg_trajectories' 키가
-    # 들어 있다(list of {id,type,role,x,y,velocity,yaw}). 어댑터는 이를
-    # actor_id별 시계열로 묶어 rss_labeler가 쓸 수 있게 정렬한다.
-    # patch가 안 들어간 컨테이너의 결과(라이트 fallback)는 None으로 둔다.
+    # 들어 있고 그 값은 {"actors": list, "error": str|None} dict다. actors의
+    # 각 원소는 {id,type,kind('vehicle'|'walker'),role,x,y,velocity,yaw}.
+    # 어댑터는 actor_id별 시계열로 묶고 actor 메타(kind 포함)는 meta에 적어
+    # rss_labeler가 vehicle/walker를 구분할 수 있게 한다. patch가 안 들어간
+    # 컨테이너의 결과는 None으로 둔다.
     bg_traj: Optional[dict] = None
+    bg_actor_meta: dict = {}
+    bg_error_steps: list = []
     if "bg_trajectories" in steps[0]:
         bg_traj = {}
-        for s in steps:
-            for v in s.get("bg_trajectories") or []:
+        for i, s in enumerate(steps):
+            entry = s.get("bg_trajectories") or {}
+            actors = entry.get("actors", []) if isinstance(entry, dict) else entry
+            if isinstance(entry, dict) and entry.get("error"):
+                bg_error_steps.append((i, entry["error"]))
+            for v in actors:
                 vid = int(v.get("id", -1))
                 if vid < 0:
                     continue
@@ -135,8 +143,14 @@ def extract_cell_response(records: dict, cell_index: int, cell_meta: dict) -> Ce
                     float(v.get("velocity", 0.0)),
                     float(v.get("yaw", 0.0)),
                 ])
+                if vid not in bg_actor_meta:
+                    bg_actor_meta[vid] = dict(
+                        type=v.get("type"),
+                        kind=v.get("kind", "vehicle"),
+                        role=v.get("role"),
+                    )
         if not bg_traj:
-            bg_traj = None  # patch는 들어갔지만 차량이 한 대도 없었던 경우
+            bg_traj = None  # patch는 들어갔지만 한 actor도 없었던 경우
 
     last = steps[-1]
     meta = dict(
@@ -148,6 +162,8 @@ def extract_cell_response(records: dict, cell_index: int, cell_meta: dict) -> Ce
         off_road=bool(any(s.get("off_road") for s in steps)),
         lane_invasion=bool(any(s.get("lane_invasion") for s in steps)),
         run_red_light=bool(any(s.get("run_red_light") for s in steps)),
+        bg_actor_meta=bg_actor_meta,
+        bg_error_steps=bg_error_steps[:5],   # 처음 5개만 (디버그용)
     )
 
     return CellResponse(
