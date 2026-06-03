@@ -40,7 +40,16 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
         3.0: {"sigma_scale": 0.7},
         4.0: {"sigma_scale": 0.5},
     },
-    "nf": {},          # 예: {0.0: {"flow_sigma": 0.5}, ...}
+    # NF c 다이얼: get_init_action의 latent z 분산 σ. z=0(c=0.0)은 학습된 mode
+    # 그대로, σ 키울수록 latent tail에서 sample. 가설 1을 1차 후보로 박고
+    # 단조성 pilot 2차에서 검증.
+    "nf": {
+        0.0: {"flow_sigma": 0.0},
+        1.0: {"flow_sigma": 0.25},
+        2.0: {"flow_sigma": 0.5},
+        3.0: {"flow_sigma": 1.0},
+        4.0: {"flow_sigma": 2.0},
+    },
     "advsim": {},      # parameters 인덱스(data_id) 통제, 별도 매핑 필요 없음
     "advtraj": {},     # 같음
     "ordinary": {0.0: {}},   # severity 무관, c=0만 인정
@@ -89,12 +98,17 @@ def _patch_lc(c_value: float) -> None:
 
 
 def _patch_nf(c_value: float) -> None:
-    """NF flow_sample sigma 직접 매핑.
+    """NF의 c 다이얼: get_init_action의 latent z 분산 σ.
 
-    NormalizingFlow.flow_sample(state, sample_number=1000, sigma=1.0)이 명시
-    sigma 인자를 받는다. 호출자가 어디서 sigma를 어떻게 넘기는지 SafeBench의
-    호출 사슬을 따라가야 정확한 monkey-patch가 가능하다(현재 NF는 SafeBench
-    eval 흐름에서 어떻게 호출되는지 추가 점검 필요). 우선 인터페이스만 둔다.
+    SafeBench eval 흐름에서 NF는 `flow_sample`이 아니라 `get_init_action`을
+    호출한다 (normalizing_flow_policy.py:221). 그 안 `mean = zeros(action_dim)`
+    +`action = self.model.inverse(mean, condition)`. z=0이면 학습된 mode를
+    그대로 받고, z를 N(0, σ²I)에서 sample하면 latent space의 다른 자리에서
+    flow 역방향 결과를 받는다. σ가 곧 c 다이얼이다.
+
+    가설 1 (검토자 라운드 10 정합): σ 키우면 latent tail에서 mode 밖 sample →
+    더 다양한·극단적 공격 위치. 단조성 pilot 2차에서 ρ ≥ 0.7 미달이면 가설 2
+    (σ 키우면 학습된 mode를 잃음 → 공격력 감소)로 반전 시도.
     """
     mapping = SEVERITY_MAP["nf"].get(c_value)
     if mapping is None:
@@ -102,14 +116,25 @@ def _patch_nf(c_value: float) -> None:
             f"NF severity mapping for c={c_value} not yet calibrated by pilot"
         )
     flow_sigma = mapping["flow_sigma"]
+    import torch
     from safebench.scenario.scenario_policy import normalizing_flow_policy as nf
+    from safebench.util.torch_util import CUDA
 
-    orig_flow_sample = nf.NormalizingFlow.flow_sample
+    def patched_get_init_action(self, state, infos, deterministic=False):
+        processed_state = self.proceess_init_state(state)
+        processed_state = CUDA(torch.from_numpy(processed_state))
+        self.model.eval()
+        with torch.no_grad():
+            # AAAI-IRT patch: z=0 대신 z ~ N(0, flow_sigma²I) sample
+            z = CUDA(torch.randn(self.action_dim)[None]) * flow_sigma
+            condition = CUDA(torch.tensor(processed_state))[None]
+            action = self.model.inverse(z, condition)
+        action_list = []
+        for a_i in range(self.action_dim):
+            action_list.append(action.cpu().numpy()[0, a_i])
+        return action_list
 
-    def patched_flow_sample(self, state, sample_number=1000, sigma=1.0):
-        return orig_flow_sample(self, state, sample_number=sample_number, sigma=flow_sigma)
-
-    nf.NormalizingFlow.flow_sample = patched_flow_sample
+    nf.NormalizingFlow.get_init_action = patched_get_init_action
 
 
 def _patch_hardcode(c_value: float) -> None:
