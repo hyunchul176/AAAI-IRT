@@ -19,6 +19,11 @@ import yaml
 
 
 SAFEBENCH_SCENARIO_CFG_DIR = "safebench/scenario/config"
+FREA_SCENARIO_CFG_DIR = "frea/scenario/config"
+
+
+def _scenario_cfg_dir(tree: str) -> str:
+    return SAFEBENCH_SCENARIO_CFG_DIR if tree == "safebench" else FREA_SCENARIO_CFG_DIR
 
 
 def make_cell_scenario_yaml(
@@ -30,6 +35,7 @@ def make_cell_scenario_yaml(
     route_id: Optional[int],
     data_id: Optional[int] = None,
     model_id: Optional[int] = None,
+    tree: str = "safebench",
 ) -> str:
     """base yaml을 읽어 (scenario_id, route_id, data_id, model_id)를 셀에 맞게
     덮어쓴 새 yaml을 safebench/scenario/config/aaai_cell_<tag>.yaml로 저장하고
@@ -52,7 +58,8 @@ def make_cell_scenario_yaml(
     Returns:
       tmp yaml의 파일명(scenario_cfg 인자로 그대로 넘길 값).
     """
-    base_path = Path(safebench_root) / SAFEBENCH_SCENARIO_CFG_DIR / base_scenario_cfg
+    cfg_dir = _scenario_cfg_dir(tree)
+    base_path = Path(safebench_root) / cfg_dir / base_scenario_cfg
     if not base_path.exists():
         raise FileNotFoundError(f"base scenario cfg not found: {base_path}")
     with open(base_path, "r") as f:
@@ -68,10 +75,18 @@ def make_cell_scenario_yaml(
         cfg["model_id"] = model_id
 
     tmp_name = f"aaai_cell_{cell_tag}.yaml"
-    tmp_path = Path(safebench_root) / SAFEBENCH_SCENARIO_CFG_DIR / tmp_name
+    tmp_path = Path(safebench_root) / cfg_dir / tmp_name
     with open(tmp_path, "w") as f:
         yaml.safe_dump(cfg, f, sort_keys=False)
     return tmp_name
+
+
+def remove_cell_scenario_yaml(safebench_root: str, tmp_name: str, tree: str = "safebench") -> None:
+    """cleanup. atexit 또는 finally에서 호출한다."""
+    cfg_dir = _scenario_cfg_dir(tree)
+    tmp_path = Path(safebench_root) / cfg_dir / tmp_name
+    if tmp_path.exists():
+        os.remove(tmp_path)
 
 
 def sweep_stale_cell_yamls(safebench_root: str) -> int:
@@ -86,13 +101,6 @@ def sweep_stale_cell_yamls(safebench_root: str) -> int:
         p.unlink()
         n += 1
     return n
-
-
-def remove_cell_scenario_yaml(safebench_root: str, tmp_name: str) -> None:
-    """cleanup. atexit 또는 finally에서 호출한다."""
-    tmp_path = Path(safebench_root) / SAFEBENCH_SCENARIO_CFG_DIR / tmp_name
-    if tmp_path.exists():
-        os.remove(tmp_path)
 
 
 def make_cell_agent_yaml(

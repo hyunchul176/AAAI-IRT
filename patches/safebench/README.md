@@ -30,7 +30,7 @@ docker cp patches/safebench/route_scenario_patched.py \
 `analysis/b4-pipeline/sb_to_response.py`가 그것을 `bg_traj`로 읽어
 `analysis/b4-pipeline/rss_labeler.py`로 회피불가 라벨 u를 부여한다.
 
-## Patch 2: `scenario_utils.py` · yaml의 data_id 필드로 셀 단위 filter
+## Patch 2a: `scenario_utils.py` (SafeBench tree) · yaml의 data_id 필드로 셀 단위 filter
 
 SafeBench upstream `scenario_utils.py`는 yaml의 `scenario_id`·`route_id`로만
 scenario_type json을 filter한다. 우리 한 셀 = 한 (scenario_id, route_id,
@@ -48,9 +48,34 @@ docker cp patches/safebench/scenario_utils_patched.py \
     <container>:/home/safebench/SafeBench/safebench/scenario/tools/scenario_utils.py
 ```
 
-이 패치 없이는 yaml에 `data_id`를 적어도 무시되어 한 (sid, rid) 묶음의 모든
+이 패치 없이는 yaml에 `data_id`를 적어도 무시되어 한 (sid, rid)에 속한 모든
 data_id가 한 SafeBench eval에서 같이 실행된다. orchestrator 호출 전에
 반드시 함께 적용한다.
+
+## Patch 2b: `frea_scenario_utils.py` (FREA tree) · 같은 data_id filter 추가
+
+FREA는 SafeBench 포크라 `scenario_utils.py`도 거의 같지만 line number와 주변
+주석이 다르다. 같은 효과의 한 단락(7줄)을 FREA tree에도 적용한다.
+
+파일:
+- `frea_scenario_utils_original.py`: FREA upstream의 `frea/scenario/tools/scenario_utils.py` 원본.
+- `frea_scenario_utils_patched.py`: 같은 위치에 data_id filter 추가.
+
+적용:
+
+```bash
+docker cp patches/safebench/frea_scenario_utils_patched.py \
+    <container>:/home/safebench/FREA/frea/scenario/tools/scenario_utils.py
+```
+
+FREA 컨테이너 셋업 노트: torch는 1.13.1+cu117을 유지하고
+(`pip install --user torch==1.13.1+cu117 ... --index-url ...cu117`),
+pytorch_lightning은 1.9.x로 둔다(2.x는 torch 2.1+ 요구). 누락 패키지는
+`rdp beartype distance3d einops h5py matplotlib moviepy "pytorch_lightning<2.0"
+scikit-image seaborn shapely transformers` 정도. SafeBench와 FREA가 같은
+Python env에서 공존하도록 의존 버전을 신중히 고른다.
+SafeBench `adv_patch.py`의 ObjectDetection import가 `torch._six`를 요구하는
+torch 1.13에 묶여 있어 torch 업그레이드는 SafeBench 쪽을 깨뜨린다.
 
 ## Patch 3: `aaai_orchestrator/` · 셀 단위 yaml override + severity injection
 

@@ -31,7 +31,17 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
     "advsim": {},      # parameters 인덱스(data_id) 통제, 별도 매핑 필요 없음
     "advtraj": {},     # 같음
     "ordinary": {0.0: {}},   # severity 무관, c=0만 인정
-    "fppo_adv": {},    # FREA PPO sample noise scale
+    # FREA fppo_adv는 학습 progress step 자체가 severity 다이얼이다. CBV_ckpt의
+    # `model.fppo_adv.cbv.<episode>.torch` 파일 episode 인덱스를 c에 매핑한다.
+    # 후보 5수준은 단조성 pilot이 합격 판정할 자리(생성기·severity 결정의
+    # Spearman ρ ≥ 0.7).
+    "fppo_adv": {
+        0.0: {"episode":   50},
+        1.0: {"episode":  200},
+        2.0: {"episode":  500},
+        3.0: {"episode":  900},
+        4.0: {"episode": 1250},
+    },
 }
 
 
@@ -110,23 +120,29 @@ def _patch_dummy(c_value: float) -> None:
 
 
 def _patch_fppo_adv(c_value: float) -> None:
-    """FREA fppo_adv는 PPO.get_action에서 self.policy.get_action으로 sample한다.
-    sample noise scale을 monkey-patch로 곱해 c 단계를 만든다(NF처럼 명시 인자
-    없음). 정확한 진입점은 FREA의 PPO.policy 객체 구조 점검이 필요하므로
-    인터페이스만 잡아 둔다.
+    """FREA fppo_adv는 학습 progress가 곧 severity 다이얼이다. PPO.load_model이
+    `model.fppo_adv.cbv.<episode>.torch` 파일을 episode 인자로 골라 로드하므로
+    (frea/scenario/scenario_policy/rl/ppo.py:229-254), 우리 c 5수준은 episode
+    인덱스 5개로 매핑한다(생성기·severity 결정).
+
+    monkey-patch는 PPO.load_model을 wrap해 episode 인자를 강제로 매핑값으로
+    바꾼다. carla_runner의 self.scenario_policy.load_model(map_name=...)
+    호출이 그 wrap을 거치게 된다.
     """
     mapping = SEVERITY_MAP["fppo_adv"].get(c_value)
     if mapping is None:
         raise NotImplementedError(
             f"FREA fppo_adv severity mapping for c={c_value} not yet calibrated by pilot"
         )
-    # 실제 hook은 FREA의 PPO.policy.get_action 분포 구조 점검 후 채운다. mapping
-    # 표가 채워졌다는 것은 pilot이 진입점을 확인했다는 뜻이므로 그 시점에 여기서
-    # 실제 monkey-patch를 적용한다.
-    raise NotImplementedError(
-        "fppo_adv hook awaiting FREA PPO sample-distribution inspection; "
-        f"SEVERITY_MAP['fppo_adv'][{c_value}]={mapping} is set but no patch wired"
-    )
+    target_episode = mapping["episode"]
+    from frea.scenario.scenario_policy.rl.ppo import PPO
+
+    orig_load = PPO.load_model
+
+    def patched_load(self, map_name, episode=None):
+        return orig_load(self, map_name, episode=target_episode)
+
+    PPO.load_model = patched_load
 
 
 _INJECTORS: dict[str, Callable[[float], None]] = {

@@ -31,7 +31,9 @@ from pathlib import Path
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser()
     p.add_argument("--safebench-root", default="/home/safebench/SafeBench",
-                   help="SafeBench 저장소 루트")
+                   help="SafeBench 저장소 루트 (tree=safebench일 때) 또는 FREA 루트")
+    p.add_argument("--tree", choices=["safebench", "frea"], default="safebench",
+                   help="SafeBench 또는 FREA 둘 중 어느 트리에서 실행할지")
     p.add_argument("--agent-cfg", required=True, help="agent yaml 파일명 (예: sac.yaml)")
     p.add_argument("--scenario-cfg", required=True, help="원본 scenario yaml 파일명 (예: LC.yaml)")
     p.add_argument("--policy-type", required=True,
@@ -45,27 +47,35 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="REINFORCE 계열(LC) model_id 강제값")
     p.add_argument("--c-value", type=float, required=True, help="severity 수준")
     p.add_argument("--seed", type=int, required=True, help="셀 시드")
-    p.add_argument("--exp-name", required=True, help="SafeBench --exp_name")
+    p.add_argument("--exp-name", required=True, help="SafeBench/FREA --exp_name")
     p.add_argument("--port", type=int, default=2000)
     p.add_argument("--tm-port", type=int, default=8000)
     p.add_argument("--num-scenario", type=int, default=1,
                    help="셀당 한 rollout만 실행하도록 1로 강제")
     p.add_argument("--max-episode-step", type=int, default=300)
     p.add_argument("--fixed-delta-seconds", type=float, default=0.1)
+    # FREA-specific 인자(scripts/run.py가 safebench와 다르다)
+    p.add_argument("--frea-pretrain-ego", default="expert", choices=["expert", "plant"],
+                   help="FREA --pretrain_ego (tree=frea일 때만 사용)")
+    p.add_argument("--frea-pretrain-cbv", default="fppo_adv",
+                   choices=["ppo", "standard", "fppo_adv", "fppo_rs"],
+                   help="FREA --pretrain_cbv")
+    p.add_argument("--frea-cbv-selection", default="rule-based",
+                   choices=["rule-based", "attention-based"], help="FREA --CBV_selection")
     p.add_argument("--dry-run", action="store_true",
-                   help="tmp yaml만 만들고 SafeBench 호출은 생략")
+                   help="tmp yaml만 만들고 SafeBench/FREA 호출은 생략")
     return p
 
 
 def main() -> int:
     args = _build_parser().parse_args()
 
-    # SafeBench가 import할 수 있도록 PYTHONPATH/cwd 설정
-    safebench_root = Path(args.safebench_root)
-    if not safebench_root.exists():
-        print(f"!! safebench root not found: {safebench_root}", file=sys.stderr)
+    # tree에 따라 root와 config 디렉토리가 다르다.
+    tree_root = Path(args.safebench_root)
+    if not tree_root.exists():
+        print(f"!! tree root not found: {tree_root}", file=sys.stderr)
         return 2
-    sys.path.insert(0, str(safebench_root))
+    sys.path.insert(0, str(tree_root))
 
     # 우리 패키지(__init__.py 가 한 단계 위) 가져오기
     pkg_root = Path(__file__).resolve().parent.parent
@@ -76,18 +86,20 @@ def main() -> int:
 
     # tmp scenario yaml 만들기 (data_id는 patched scenario_utils.py가 읽음)
     tmp_scenario_yaml = make_cell_scenario_yaml(
-        safebench_root=str(safebench_root),
+        safebench_root=str(tree_root),
         base_scenario_cfg=args.scenario_cfg,
         cell_tag=args.exp_name,
         scenario_id=args.sid,
         route_id=args.rid,
         data_id=args.data_id,
         model_id=args.model_id,
+        tree=args.tree,
     )
-    atexit.register(remove_cell_scenario_yaml, str(safebench_root), tmp_scenario_yaml)
+    atexit.register(remove_cell_scenario_yaml, str(tree_root), tmp_scenario_yaml, args.tree)
 
     if args.dry_run:
-        tmp_path = safebench_root / "safebench/scenario/config" / tmp_scenario_yaml
+        sub = "safebench/scenario/config" if args.tree == "safebench" else "frea/scenario/config"
+        tmp_path = tree_root / sub / tmp_scenario_yaml
         print(f">> dry-run: wrote {tmp_path}")
         with open(tmp_path) as f:
             sys.stdout.write(f.read())
@@ -98,27 +110,42 @@ def main() -> int:
     from aaai_orchestrator.severity_injectors import apply_severity
     apply_severity(args.policy_type, args.c_value)
 
-    # 이제 SafeBench를 import해 한 셀 eval을 직접 띄운다(monkey-patch가
-    # import 후에도 작동하도록 정책 클래스의 메서드를 갈아끼우는 방식이라
-    # apply_severity는 import 전·후 어느 자리에서도 OK).
-    os.chdir(str(safebench_root))
-    sys.argv = [
-        "scripts/run.py",
-        "--agent_cfg", args.agent_cfg,
-        "--scenario_cfg", tmp_scenario_yaml,
-        "--mode", "eval",
-        "--num_scenario", str(args.num_scenario),
-        "--seed", str(args.seed),
-        "--port", str(args.port),
-        "--tm_port", str(args.tm_port),
-        "--exp_name", args.exp_name,
-        "--max_episode_step", str(args.max_episode_step),
-        "--fixed_delta_seconds", str(args.fixed_delta_seconds),
-        "--ROOT_DIR", str(safebench_root),
-    ]
+    # 이제 SafeBench/FREA를 import해 한 셀 eval을 직접 띄운다.
+    os.chdir(str(tree_root))
+    if args.tree == "safebench":
+        sys.argv = [
+            "scripts/run.py",
+            "--agent_cfg", args.agent_cfg,
+            "--scenario_cfg", tmp_scenario_yaml,
+            "--mode", "eval",
+            "--num_scenario", str(args.num_scenario),
+            "--seed", str(args.seed),
+            "--port", str(args.port),
+            "--tm_port", str(args.tm_port),
+            "--exp_name", args.exp_name,
+            "--max_episode_step", str(args.max_episode_step),
+            "--fixed_delta_seconds", str(args.fixed_delta_seconds),
+            "--ROOT_DIR", str(tree_root),
+        ]
+    else:  # frea
+        sys.argv = [
+            "scripts/run.py",
+            "--agent_cfg", args.agent_cfg,
+            "--scenario_cfg", tmp_scenario_yaml,
+            "--mode", "eval",
+            "--num_scenario", str(args.num_scenario),
+            "--seed", str(args.seed),
+            "--port", str(args.port),
+            "--tm_port", str(args.tm_port),
+            "--fixed_delta_seconds", str(args.fixed_delta_seconds),
+            "--ROOT_DIR", str(tree_root),
+            "--pretrain_ego", args.frea_pretrain_ego,
+            "--pretrain_cbv", args.frea_pretrain_cbv,
+            "--CBV_selection", args.frea_cbv_selection,
+        ]
     try:
         import runpy
-        runpy.run_path(str(safebench_root / "scripts/run.py"), run_name="__main__")
+        runpy.run_path(str(tree_root / "scripts/run.py"), run_name="__main__")
     except SystemExit as e:
         return int(e.code or 0)
     except Exception:
