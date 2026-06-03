@@ -222,19 +222,24 @@ class RouteScenario():
             self.background_actors.append(_actor)
 
     def _aaai_collect_bg_trajectories(self):
-        """AAAI-IRT D-08 hook (2026-06-03): collect non-ego vehicle state.
+        """AAAI-IRT D-08 hook (2026-06-03, round-9 fix): collect non-ego actor state.
 
         SafeBench's default logger persists ego state per step into records.pkl
-        but skips background / adversarial vehicles. Our RSS soft labeller
+        but skips background / adversarial actors. Our RSS soft labeller
         (analysis/b4-pipeline/rss_labeler.py) needs both ego and the colliding
-        actor's trajectory. This method snapshots every alive vehicle except
-        ego and is appended to running_status so it ends up in records.pkl.
+        actor's trajectory. This method snapshots every alive vehicle AND
+        walker (pedestrian) except ego and appends to running_status so it
+        ends up in records.pkl. Errors are recorded inline (not swallowed) so
+        failures leave a trace in records.pkl rather than disappearing silently.
         """
+        snapshot = []
+        error = None
         try:
             world = CarlaDataProvider.get_world()
             ego_id = self.ego_vehicle.id if self.ego_vehicle else -1
-            snapshot = []
-            for v in world.get_actors().filter("vehicle.*"):
+            actors = list(world.get_actors().filter("vehicle.*")) + \
+                     list(world.get_actors().filter("walker.*"))
+            for v in actors:
                 if not v.is_alive or v.id == ego_id:
                     continue
                 loc = v.get_location()
@@ -242,15 +247,16 @@ class RouteScenario():
                 snapshot.append({
                     "id": v.id,
                     "type": v.type_id,
+                    "kind": "walker" if v.type_id.startswith("walker") else "vehicle",
                     "role": v.attributes.get("role_name", "unknown"),
                     "x": loc.x,
                     "y": loc.y,
                     "velocity": CarlaDataProvider.get_velocity(v),
                     "yaw": rot.yaw,
                 })
-            return snapshot
-        except Exception:
-            return []
+        except Exception as exc:
+            error = repr(exc)[:200]
+        return {"actors": snapshot, "error": error}
 
     def get_running_status(self, running_record):
         running_status = {
