@@ -27,6 +27,7 @@ analysis/d-study/__pycache__/
 analysis/**/*.log
 analysis/**/sweep_*.json
 analysis/b4-pipeline/g3_logs/
+analysis/b4-pipeline/pilot_mono_logs/
 
 # Python cache / build
 __pycache__/
