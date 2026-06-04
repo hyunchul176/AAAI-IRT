@@ -19,6 +19,10 @@ from safebench.scenario.scenario_policy.rl.sac import SAC
 # 학습 안 됨(type='unlearnable')으로 adv_behavior_single 시나리오 정의 위에서
 # severity_injectors가 c → action[0] 매핑을 monkey-patch로 주입.
 from safebench.scenario.scenario_policy.idm_attack import IDMAttackPolicy
+# AAAI-IRT patch: MOBILAttackPolicy (plan §4 MOBIL 자리). BehaviorAgent
+# behavior_type 단계의 max_speed 분포만 c 다이얼에 매핑한 단순화 자리(본격
+# BehaviorAgent attach는 다음 turn 작업).
+from safebench.scenario.scenario_policy.mobil_attack import MOBILAttackPolicy
 
 
 SCENARIO_POLICY_LIST = {
@@ -34,4 +38,5 @@ SCENARIO_POLICY_LIST = {
     'od': ObjectDetection,
     'sac': SAC,
     'idm_attack': IDMAttackPolicy,
+    'mobil_attack': MOBILAttackPolicy,
 }

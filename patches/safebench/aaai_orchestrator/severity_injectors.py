@@ -40,6 +40,19 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
         3.0: {"action_value":  6.5},  # → speed = 37.5 m/s
         4.0: {"action_value":  9.0},  # → speed = 50 m/s (고속 진입)
     },
+    # MOBILAttackPolicy: BehaviorAgent behavior_type 단계(cautious 40 km/h ≈ 11
+    # m/s / normal 50 ≈ 14 m/s / aggressive 70 ≈ 19 m/s)의 max_speed 분포를
+    # c 5수준에 선형 보간. speed = action*5 + 5 변환이므로:
+    # c=0 cautious 11 m/s → action 1.2 / c=2 normal 14 m/s → action 1.78 /
+    # c=4 aggressive 19 m/s → action 2.8. IDM의 폭(0~50 m/s)과 다른 좁은
+    # 폭(11~19)이라 두 G가 다른 c→speed 곡선 family로 작동.
+    "mobil_attack": {
+        0.0: {"action_value": 1.20},  # cautious
+        1.0: {"action_value": 1.50},
+        2.0: {"action_value": 1.80},  # normal
+        3.0: {"action_value": 2.30},
+        4.0: {"action_value": 2.80},  # aggressive
+    },
     # LC(REINFORCE init-state policy)의 c 다이얼 후보. 검토자 라운드 10이 짚은
     # 자리로, 매 시나리오 시작 위치 한 번 결정에서 c 5수준을 만들 자리는
     # sample_action의 Gaussian σ에 곱하는 sigma_scale 한 자리 변수다. 가설
@@ -234,6 +247,25 @@ def _patch_idm_attack(c_value: float) -> None:
     ia.IDMAttackPolicy.__init__ = patched_init
 
 
+def _patch_mobil_attack(c_value: float) -> None:
+    """MOBILAttackPolicy의 c 다이얼 주입. IDM과 같은 monkey-patch 패턴."""
+    mapping = SEVERITY_MAP["mobil_attack"].get(c_value)
+    if mapping is None:
+        raise NotImplementedError(
+            f"MOBILAttackPolicy severity mapping for c={c_value} not yet calibrated"
+        )
+    action_value = mapping["action_value"]
+    from safebench.scenario.scenario_policy import mobil_attack as ma
+
+    orig_init = ma.MOBILAttackPolicy.__init__
+
+    def patched_init(self, scenario_config, logger):
+        orig_init(self, scenario_config, logger)
+        self._aaai_action_value = action_value
+
+    ma.MOBILAttackPolicy.__init__ = patched_init
+
+
 _INJECTORS: dict[str, Callable[[float], None]] = {
     "lc": _patch_lc,
     "nf": _patch_nf,
@@ -242,6 +274,7 @@ _INJECTORS: dict[str, Callable[[float], None]] = {
     "ordinary": _patch_dummy,
     "fppo_adv": _patch_fppo_adv,
     "idm_attack": _patch_idm_attack,
+    "mobil_attack": _patch_mobil_attack,
 }
 
 
