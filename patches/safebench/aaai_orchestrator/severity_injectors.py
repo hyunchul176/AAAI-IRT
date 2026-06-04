@@ -26,17 +26,19 @@ from typing import Callable
 # 들어간다. pilot 전에는 비워 두고, severity injector는 c_value가 매핑에 없으면
 # 명시적으로 NotImplementedError를 던지도록 한다(silent fallback 금지).
 SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
-    # IDMAttackPolicy의 c 다이얼: adv_behavior_single 시나리오 정의의
-    # convert_actions이 `speed = action[0]*5 + 5`로 변환하므로, action[0] 단일
-    # 변수로 background actor target_speed를 0~25 m/s 범위에서 단조 조절.
-    # c=0.0(부드러운 진입 5 m/s)부터 c=4.0(빠른 진입 25 m/s)까지 코드 수준에서
-    # 단조성이 보장된다(plan §4·§13의 표준 단순 생성기 권고와 정합).
+    # IDMAttackPolicy의 c 다이얼 (라운드 14 정정: 범위 확장).
+    # adv_behavior_single.update_behavior의 convert_actions는 `speed = action[0]*5 + 5`로
+    # 변환한다. action[0] 범위를 더 넓혀 background actor target_speed가 더 공격적인
+    # 자리까지 펼쳐지도록 한다. pilot v2 (sac, idm_attack)에서 target_speed 5~25 m/s가
+    # SAC ego·시나리오 8에 너무 약했다는 진단(라운드 13)에 따라 c=0→-1.0(0 m/s 정지),
+    # c=4→9.0(50 m/s 고속) 자리로 폭을 두 배 키운다. 명시 변수 자리에 다이얼을 직접
+    # 거는 길은 plan §4·§13 정합(검토자 라운드 14).
     "idm_attack": {
-        0.0: {"action_value": 0.0},   # → speed = 5  m/s
-        1.0: {"action_value": 1.0},   # → speed = 10 m/s
-        2.0: {"action_value": 2.0},   # → speed = 15 m/s
-        3.0: {"action_value": 3.0},   # → speed = 20 m/s
-        4.0: {"action_value": 4.0},   # → speed = 25 m/s
+        0.0: {"action_value": -1.0},  # → speed = 0  m/s (정지)
+        1.0: {"action_value":  1.5},  # → speed = 12.5 m/s
+        2.0: {"action_value":  4.0},  # → speed = 25 m/s
+        3.0: {"action_value":  6.5},  # → speed = 37.5 m/s
+        4.0: {"action_value":  9.0},  # → speed = 50 m/s (고속 진입)
     },
     # LC(REINFORCE init-state policy)의 c 다이얼 후보. 검토자 라운드 10이 짚은
     # 자리로, 매 시나리오 시작 위치 한 번 결정에서 c 5수준을 만들 자리는

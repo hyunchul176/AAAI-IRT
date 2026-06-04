@@ -60,6 +60,13 @@ echo ">> $(date +%H:%M:%S) DDPG·PPO·TD3 직렬 학습 orchestrator 시작 (v2)
 # DDPG는 이미 직접 시작된 자리. polling만.
 wait_agent_done ddpg
 
+# 라운드 14 권고: DDPG 학습 후 (sac, lc) c=0 K=30 재pilot으로 LC 다이얼 신호 vs
+# 잡음 진단. 5분 작업이라 PPO 시작 전 끼움.
+echo ">> $(date +%H:%M:%S) DDPG 후 (sac, lc) c=0 K=30 재pilot 시작"
+cd /home/hyunchul/AAAI && python3 analysis/b4-pipeline/pilot_recheck_lc_c0.py \
+    --container "${CONTAINER}" > analysis/b4-pipeline/pilot_recheck.log 2>&1 || true
+echo ">> $(date +%H:%M:%S) 재pilot 완료. log: analysis/b4-pipeline/pilot_recheck.log"
+
 start_agent ppo
 wait_agent_done ppo
 
