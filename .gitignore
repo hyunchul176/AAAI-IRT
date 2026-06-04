@@ -29,6 +29,9 @@ analysis/**/sweep_*.json
 analysis/b4-pipeline/g3_logs/
 analysis/b4-pipeline/pilot_mono_logs/
 analysis/b4-pipeline/pilot_mono_logs_v1/
+analysis/b4-pipeline/pilot_mono_v3_logs/
+analysis/b4-pipeline/pilot_recheck_lc_c0_logs/
+analysis/b4-pipeline/pilot_recheck.log
 analysis/b4-pipeline/train_serial.log
 analysis/b4-pipeline/train_agents_serial.log
 analysis/b4-pipeline/pilot_mono_v2_logs/
