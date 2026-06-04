@@ -1,0 +1,35 @@
+scenario_type_dir: 'safebench/scenario/config/scenario_type'
+scenario_type: 'adv_behavior_attach.json'
+scenario_category: 'planning'
+policy_type: 'mobil_attack_v2'
+
+route_dir: 'safebench/scenario/scenario_data/route'
+scenario_id: 8
+route_id: null
+
+# parameters for agent policy
+ego_action_dim: 2
+ego_state_dim: 4
+ego_action_limit: 1.0
+
+# parameters for scenario policy. adv_behavior_attach 시나리오 정의의
+# update_behavior가 scenario_action[0]을 정수 0~2(behavior_type 단계)로 받음.
+# scenario_action_dim=1로 둔다(sac.yaml과 같은 자리).
+scenario_state_dim: 18
+scenario_action_dim: 1
+
+# CarlaRunner.__init__가 학습/평가 모드에서 아래 필드를 요구. 학습 안 함이지만
+# placeholder.
+model_path: 'safebench/scenario/scenario_data/model_ckpt/sac'
+model_id: 1
+train_episode: 1
+save_freq: 1
+eval_in_train_freq: 10
+buffer_capacity: 1
+buffer_start_training: 1
+lr: 5.0e-4
+tau: 0.005
+update_iteration: 3
+gamma: 0.99
+batch_size: 32
+min_Val: 1.0e-7

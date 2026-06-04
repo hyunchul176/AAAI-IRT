@@ -53,6 +53,18 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
         3.0: {"action_value": 2.30},
         4.0: {"action_value": 2.80},  # aggressive
     },
+    # MOBIL v2: BehaviorAgent attach 본격. update_behavior가 정수 0~2를 받아
+    # behavior_type 단계를 갈아끼움(cautious·normal·aggressive). 단순화 MOBIL(11~19
+    # m/s target_speed 폭)과 달리 throttle·steer·brake control 자체를 BehaviorAgent
+    # 7개 변수(max_speed·min_proximity·braking_distance 등)에서 정합 결정한다.
+    # c 5수준은 세 단계에 분배: c=0~1 cautious, c=2 normal, c=3~4 aggressive.
+    "mobil_attack_v2": {
+        0.0: {"action_value": 0.0},  # cautious
+        1.0: {"action_value": 0.0},  # cautious
+        2.0: {"action_value": 1.0},  # normal
+        3.0: {"action_value": 2.0},  # aggressive
+        4.0: {"action_value": 2.0},  # aggressive
+    },
     # LC(REINFORCE init-state policy)의 c 다이얼. 라운드 14 검토 + K=30 재pilot
     # 결과(2026-06-04)로 가설 2(σ 큼 → mu 분포 tail의 다양·극단 공격 위치
     # sample → 공격력 증가)가 검증됨. (sac, lc) sigma_scale=2.0(옛 c=0) 자리에서
@@ -266,6 +278,25 @@ def _patch_mobil_attack(c_value: float) -> None:
     ma.MOBILAttackPolicy.__init__ = patched_init
 
 
+def _patch_mobil_attack_v2(c_value: float) -> None:
+    """MOBILAttackPolicyV2의 c 다이얼 주입. behavior_type 단계 0~2."""
+    mapping = SEVERITY_MAP["mobil_attack_v2"].get(c_value)
+    if mapping is None:
+        raise NotImplementedError(
+            f"MOBILAttackPolicyV2 severity mapping for c={c_value} not yet calibrated"
+        )
+    action_value = mapping["action_value"]
+    from safebench.scenario.scenario_policy import mobil_attack_v2 as mav2
+
+    orig_init = mav2.MOBILAttackPolicyV2.__init__
+
+    def patched_init(self, scenario_config, logger):
+        orig_init(self, scenario_config, logger)
+        self._aaai_action_value = action_value
+
+    mav2.MOBILAttackPolicyV2.__init__ = patched_init
+
+
 _INJECTORS: dict[str, Callable[[float], None]] = {
     "lc": _patch_lc,
     "nf": _patch_nf,
@@ -275,6 +306,7 @@ _INJECTORS: dict[str, Callable[[float], None]] = {
     "fppo_adv": _patch_fppo_adv,
     "idm_attack": _patch_idm_attack,
     "mobil_attack": _patch_mobil_attack,
+    "mobil_attack_v2": _patch_mobil_attack_v2,
 }
 
 

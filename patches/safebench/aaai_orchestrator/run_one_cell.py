@@ -37,7 +37,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p.add_argument("--agent-cfg", required=True, help="agent yaml 파일명 (예: sac.yaml)")
     p.add_argument("--scenario-cfg", required=True, help="원본 scenario yaml 파일명 (예: LC.yaml)")
     p.add_argument("--policy-type", required=True,
-                   choices=["lc", "nf", "advsim", "advtraj", "ordinary", "fppo_adv", "idm_attack", "mobil_attack"],
+                   choices=["lc", "nf", "advsim", "advtraj", "ordinary", "fppo_adv", "idm_attack", "mobil_attack", "mobil_attack_v2"],
                    help="severity injector를 고르는 정책 타입")
     p.add_argument("--sid", type=int, required=True, help="scenario_id 강제값")
     p.add_argument("--rid", type=int, required=True, help="route_id 강제값")

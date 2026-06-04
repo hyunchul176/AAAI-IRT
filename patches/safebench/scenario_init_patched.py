@@ -23,6 +23,9 @@ from safebench.scenario.scenario_policy.idm_attack import IDMAttackPolicy
 # behavior_type 단계의 max_speed 분포만 c 다이얼에 매핑한 단순화 자리(본격
 # BehaviorAgent attach는 다음 turn 작업).
 from safebench.scenario.scenario_policy.mobil_attack import MOBILAttackPolicy
+# AAAI-IRT patch v2 (본격 BehaviorAgent attach). adv_behavior_attach 시나리오
+# 정의와 짝(MOBIL 정책 본 자리).
+from safebench.scenario.scenario_policy.mobil_attack_v2 import MOBILAttackPolicyV2
 
 
 SCENARIO_POLICY_LIST = {
@@ -39,4 +42,5 @@ SCENARIO_POLICY_LIST = {
     'sac': SAC,
     'idm_attack': IDMAttackPolicy,
     'mobil_attack': MOBILAttackPolicy,
+    'mobil_attack_v2': MOBILAttackPolicyV2,
 }
