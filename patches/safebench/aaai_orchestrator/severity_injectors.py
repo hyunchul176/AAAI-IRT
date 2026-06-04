@@ -53,19 +53,19 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
         3.0: {"action_value": 2.30},
         4.0: {"action_value": 2.80},  # aggressive
     },
-    # LC(REINFORCE init-state policy)의 c 다이얼 후보. 검토자 라운드 10이 짚은
-    # 자리로, 매 시나리오 시작 위치 한 번 결정에서 c 5수준을 만들 자리는
-    # sample_action의 Gaussian σ에 곱하는 sigma_scale 한 자리 변수다. 가설
-    # 1(sigma 작음 → 학습된 mu 근처 결정 → 공격력 증가)을 1차 후보로 박고,
-    # 단조성 pilot 2차에서 ρ ≥ 0.7 미달이면 가설 2(sigma 큼 → mu 분포 tail의
-    # 극단적 공격 위치 sample)로 반전 시도. method.html 식 (6) γ_G·c와 정합한
-    # 자리는 sigma_scale 단일 변수 다이얼이지만 단조성 방향 자체는 가설.
+    # LC(REINFORCE init-state policy)의 c 다이얼. 라운드 14 검토 + K=30 재pilot
+    # 결과(2026-06-04)로 가설 2(σ 큼 → mu 분포 tail의 다양·극단 공격 위치
+    # sample → 공격력 증가)가 검증됨. (sac, lc) sigma_scale=2.0(옛 c=0) 자리에서
+    # 30 cells 충돌률 26.67%, Wilson 95% CI [0.142, 0.444], random(p=0.05)과
+    # FREA Table 2(p=0.10) 둘 다 통계적으로 다름. 따라서 라벨을 반전해
+    # c=0→sigma_scale 0.3(거의 결정적, mu 그대로), c=4→sigma_scale 2.0(검증된
+    # 공격 자리)으로 매핑하면 단조 곡선이 자연.
     "lc": {
-        0.0: {"sigma_scale": 2.0},
-        1.0: {"sigma_scale": 1.5},
+        0.0: {"sigma_scale": 0.3},
+        1.0: {"sigma_scale": 0.7},
         2.0: {"sigma_scale": 1.0},
-        3.0: {"sigma_scale": 0.7},
-        4.0: {"sigma_scale": 0.5},
+        3.0: {"sigma_scale": 1.5},
+        4.0: {"sigma_scale": 2.0},
     },
     # NF c 다이얼: get_init_action의 latent z 분산 σ. z=0(c=0.0)은 학습된 mode
     # 그대로, σ 키울수록 latent tail에서 sample. 가설 1을 1차 후보로 박고
