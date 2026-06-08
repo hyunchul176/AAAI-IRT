@@ -6,7 +6,7 @@ SEVERITY_MAP['fppo_adv']의 c→episode (50·200·500·900·1250)이 충돌률 v
 Spearman ρ ≥ 0.7을 만족하면 합격(생성기·severity 결정 본문).
 
 Town02 한정 catalog (fppo_adv ckpt가 expert_rule-based_seed0/Scenario9_Town02/
-한 자리만 있어 다른 Town은 fallback). route_id ∈ {12,13,14,15,16,20,21} 일곱
+한 곳만 있어 다른 Town은 fallback). route_id ∈ {12,13,14,15,16,20,21} 일곱
 종, 각 route에 data_id 10개. K=5 trial은 일곱 route 안에서 분산.
 
 usage:
@@ -26,7 +26,7 @@ from typing import Iterable
 
 
 # Town02 한정 (route_id, first_data_id). FREA Scenario9_Town05_Town02_10x.json
-# 안에서 route_id가 Town02에 매핑되는 일곱 자리. data_id는 각 route 안 0번째.
+# 안에서 route_id가 Town02에 매핑되는 일곱 항목. data_id는 각 route 안 0번째.
 TOWN02_ROUTES: list[tuple[int, int]] = [
     (12,  80), (13,  90), (14, 100), (15, 110), (16, 120),
     (20, 130), (21, 140),
@@ -105,7 +105,7 @@ def extract_collision_and_cleanup(container: str, cell: PilotCell, out_dir: Path
     원본을 제거한다(다음 셀의 누적 평가에 영향을 주지 않도록).
 
     FREA는 `log/eval/eval_cbv_pretrained_with_expert/expert_fppo_adv_rule-based_seed0/
-    Scenario9_Town02/results.pkl`에 한 자리만 둔다(num_scenario=1이라 한 셀 한 행).
+    Scenario9_Town02/results.pkl`에 한 항목만 둔다(num_scenario=1이라 한 셀 한 행).
     한 셀 끝나면 results.pkl·records.pkl을 셀명으로 host에 보관한 뒤 컨테이너 안
     원본을 지운다.
     """

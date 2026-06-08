@@ -35,14 +35,17 @@ def load_responses(jsonl_path: Path) -> list[dict]:
 
 
 def build_av_scenario_matrix(rows: list[dict]) -> tuple[np.ndarray, list[str], list[tuple]]:
-    """행들을 (AV, scenario=(sid, rid, data_id)) 매트릭스로. 셀당 평균 충돌률.
+    """행들을 (AV, scenario=(g_id, c, trial_k)) 매트릭스로. 셀당 평균 충돌률.
 
-    같은 셀에 K trial이 있으면 평균. 값이 없는 자리는 NaN으로 두고 split 시
-    nanmean.
+    라운드 23 정정 (라운드 16 (sid, rid, data_id) tuple은 본 N=18 jsonl 자료에서
+    응시자별로 불완전 채워져 50회 split 모두 NaN으로 잡혀 percentile에서 깨짐).
+    본 정정으로 4 G × 5 c × K trial_k 자료를 묶어 시나리오 부분집합 split의 의도와
+    정합한 N_scen 자료를 만든다. trial_k는 각 (av, g, c) cell 안 K=70 trial의 index
+    이며, 응시자 18명이 모두 같은 trial_k 자료를 가져 NaN 발생이 본질적으로 해소.
     """
     by_cell: dict[tuple[str, tuple], list[int]] = defaultdict(list)
     for r in rows:
-        scen = (int(r.get("sid", 0)), int(r.get("rid", 0)), int(r.get("data_id", 0)))
+        scen = (r["g_id"], float(r["c"]), int(r.get("trial_k", 0)))
         by_cell[(r["av_id"], scen)].append(int(r["y"]))
     av_list = sorted({k[0] for k in by_cell})
     scen_list = sorted({k[1] for k in by_cell})

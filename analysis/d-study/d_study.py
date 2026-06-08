@@ -20,7 +20,7 @@ ablation (D-05): 합격 격자에서 정보적 사전 끄기·셀당 반복 절�
   python3 d_study.py sweep    # 본 sweep (27 격자 × 2 sev × 1000 trial, ~수 시간)
 """
 import os
-# BLAS 스레드 1로 고정 — 안 그러면 multiprocessing worker마다 BLAS가 32 스레드 다 잡아
+# BLAS 스레드 1로 고정 : 안 그러면 multiprocessing worker마다 BLAS가 32 스레드 다 잡아
 # 32 × 32 = 1024 스레드 경합. 단일 BLAS 스레드 × 32 워커가 가장 빠르다.
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -101,7 +101,7 @@ def simulate_responses(true: dict, n_sev: int, K: int, sev_placement: str,
                              indexing="ij")
     I_, G_, L_ = I_.ravel(), G_.ravel(), L_.ravel()
     cc = C[L_]
-    item_id = G_ * n_sev + L_      # (G, c) 한 묶음을 하나의 item으로 식별
+    item_id = G_ * n_sev + L_      # (G, c) 한 조합을 하나의 item으로 식별
     eta = true["a"][G_] * (true["beta"][G_] + true["gamma"][G_] * cc - true["theta"][I_])
     p = true["u"][G_] + (1.0 - true["u"][G_]) * expit(eta)
     y = rng.binomial(K, p)
@@ -169,15 +169,57 @@ def fit_map(resp, fix_u=None, use_prior=True, seed=0):
     beta  = (beta - m) / s
     gamma = gamma / s
     a     = a * s
-    # Laplace 표준오차: hess_inv 대각에서 theta 부분
+    # Laplace 표준오차: 수치 헤시안 + 표준화 야코비안 보정
+    # (정정 2026-06-06 REVIEW_FIXLIST A-1 + 라운드 18 야코비안 잔여 정정)
+    # 이전 (라운드 18 1차): se_theta = se_raw / s : m이 적합된 양인데 단일 척도만
+    # 나눠 표준화 좌표의 sum-to-zero 제약과 sample 상관을 무시한 흠.
+    # 정정 (라운드 18 2차): J = (I − 11ᵀ/n_av) / s 야코비안으로 J Σ J^T 공분산을
+    # 정확히 산출한 뒤 대각의 제곱근을 표준화 좌표 SE로 사용.
     try:
-        H = res.hess_inv.todense() if hasattr(res.hess_inv, "todense") else np.asarray(res.hess_inv)
-        se_raw = np.sqrt(np.clip(np.diag(H)[:n_av], 0.0, None))
-        se_theta = se_raw / s
+        H_num = _numerical_hessian(
+            _neg_logpost, res.x,
+            args=(resp["y"], resp["I"], resp["G"], resp["cc"], resp["K"],
+                  n_av, n_g, fix_u, use_prior),
+        )
+        cov_num = np.linalg.inv(H_num)
+        # theta 부분 공분산 (raw 좌표)
+        cov_theta_raw = cov_num[:n_av, :n_av]
+        # 표준화 야코비안: θ' = (θ − mean(θ)) / s 의 ∂θ'/∂θ
+        J = (np.eye(n_av) - np.ones((n_av, n_av)) / n_av) / s
+        cov_theta_std = J @ cov_theta_raw @ J.T
+        se_theta = np.sqrt(np.clip(np.diag(cov_theta_std), 0.0, None))
     except Exception:
         se_theta = np.full(n_av, np.nan)
     return dict(theta=theta, beta=beta, gamma=gamma, a=a, u=u,
                 converged=bool(res.success), se_theta=se_theta, scale_s=float(s))
+
+
+def _numerical_hessian(f, x, args=(), h=1e-5):
+    """중심 차분(central difference) 기반 수치 헤시안 산출.
+
+    L-BFGS-B의 res.hess_inv는 제한메모리 근사라 SE 산출에 신뢰할 수 없으므로
+    최적점 x에서 함수 f의 정확한 수치 헤시안을 산출한다. n=O(20) 자료에서
+    O(n²) 함수 호출이라 약 400회 호출, 본 격자(N_av=3) 자료에서 약 1~5초.
+    """
+    n = len(x)
+    H = np.zeros((n, n))
+    # 대각 성분: H_ii = (f(x+h) - 2f(x) + f(x-h)) / h^2
+    f_x = float(f(x, *args))
+    for i in range(n):
+        x_p = x.copy(); x_p[i] += h
+        x_m = x.copy(); x_m[i] -= h
+        H[i, i] = (float(f(x_p, *args)) - 2 * f_x + float(f(x_m, *args))) / (h * h)
+    # 비대각 성분: H_ij = (f(x+h_i+h_j) - f(x+h_i-h_j) - f(x-h_i+h_j) + f(x-h_i-h_j)) / (4 h^2)
+    for i in range(n):
+        for j in range(i + 1, n):
+            x_pp = x.copy(); x_pp[i] += h; x_pp[j] += h
+            x_pm = x.copy(); x_pm[i] += h; x_pm[j] -= h
+            x_mp = x.copy(); x_mp[i] -= h; x_mp[j] += h
+            x_mm = x.copy(); x_mm[i] -= h; x_mm[j] -= h
+            H[i, j] = (float(f(x_pp, *args)) - float(f(x_pm, *args))
+                       - float(f(x_mp, *args)) + float(f(x_mm, *args))) / (4 * h * h)
+            H[j, i] = H[i, j]
+    return H
 
 
 def b_item_grid(beta, gamma, C):
@@ -423,7 +465,7 @@ def full_sweep_and_save():
             ablation = run_ablation(ablation_target, pool,
                                     n_trials=N_TRIALS_FULL, n_splits=N_SPLITS)
         else:
-            print(">>> 합격 격자 없음 — 가장 큰 격자에서 ablation 돌림", flush=True)
+            print(">>> 합격 격자 없음 : 가장 큰 격자에서 ablation 돌림", flush=True)
             biggest = max(sweep, key=lambda r: (
                 r["grid"]["n_av"] * r["grid"]["n_g"] *
                 r["grid"]["n_sev"] * r["grid"]["K"]))

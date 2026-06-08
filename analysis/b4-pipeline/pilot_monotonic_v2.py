@@ -12,7 +12,7 @@
   flow_sigma=latent z 분산 다이얼).
 - severity_injectors의 SEVERITY_MAP[lc/nf] 1차 후보를 monkey-patch로 적용.
 
-LC·NF가 모두 학습 완료된 자리에 호출한다(`train_safebench_serial.sh`가
+LC·NF가 모두 학습 완료된 시점에 호출한다(`train_safebench_serial.sh`가
 LC→NF 직렬 학습 자동 진행). 학습이 끝나기 전에 실행하면 fallback ckpt로
 의미 없는 결과가 나온다.
 
@@ -37,10 +37,10 @@ C_LEVELS = [0.0, 1.0, 2.0, 3.0, 4.0]
 K_REPS = 10
 
 # 라운드 12 정정 후 G 후보: LC + idm_attack(+ ordinary, baseline). NF는 yaml
-# 누락 10개 필드로 학습 자리 자체가 SafeBench upstream에서 한 번도 통과된 적
+# 누락 10개 필드로 학습 흐름 자체가 SafeBench upstream에서 한 번도 통과된 적
 # 없어 라운드 12에서 포기. G별 시나리오 카탈로그는 sb-pilot 안 jsonl과 정합한
-# 자리로 분리한다(host의 SafeBench와 docker 이미지의 SafeBench가 다른 commit
-# 자리에서 빌드된 사실, IDM smoke test에서 확인).
+# 형태로 분리한다(host의 SafeBench와 docker 이미지의 SafeBench가 다른 commit
+# 기반에서 빌드된 사실, IDM smoke test에서 확인).
 G_SCENARIO_CFG = {
     "lc":         dict(yaml="LC.yaml",         sid=2, route_first_data=[(0, 40), (1, 50), (2, 60), (3, 70)]),
     "idm_attack": dict(yaml="idm_attack.yaml", sid=8, route_first_data=[(0, 280), (1, 290), (2, 300), (3, 310)]),

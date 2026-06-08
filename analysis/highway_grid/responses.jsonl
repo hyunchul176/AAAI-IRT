@@ -1,0 +1,10 @@
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 0.0, "trial_k": 0, "y": 0, "ep_len": 200, "thw_mean": 8.806803507012326, "ttc_min": 2.1395286081108753, "ego_speed": 19.10908882617951}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 0.0, "trial_k": 1, "y": 0, "ep_len": 200, "thw_mean": 10.85923492845301, "ttc_min": 1.7617254881932396, "ego_speed": 16.21817319393157}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 1.0, "trial_k": 0, "y": 0, "ep_len": 200, "thw_mean": 5.449805547141107, "ttc_min": 2.5620625049218146, "ego_speed": 15.824744629859932}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 1.0, "trial_k": 1, "y": 0, "ep_len": 200, "thw_mean": 9.77853386929252, "ttc_min": 5.336759662435361, "ego_speed": 19.588475275039666}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 2.0, "trial_k": 0, "y": 0, "ep_len": 200, "thw_mean": 4.163157153944503, "ttc_min": 3.5348627485907698, "ego_speed": 22.129700088500996}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 2.0, "trial_k": 1, "y": 0, "ep_len": 200, "thw_mean": 10.60134409469408, "ttc_min": 2.9422499987300887, "ego_speed": 19.75495967864992}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 3.0, "trial_k": 0, "y": 0, "ep_len": 200, "thw_mean": 4.238325711095877, "ttc_min": 9.582233921956563, "ego_speed": 13.04765202999117}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 3.0, "trial_k": 1, "y": 0, "ep_len": 200, "thw_mean": 6.112087213686149, "ttc_min": 14.958510746228688, "ego_speed": 18.50707547664644}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 4.0, "trial_k": 0, "y": 1, "ep_len": 52, "thw_mean": 1.7674436374600606, "ttc_min": 0.3162443865872746, "ego_speed": 21.280455136299135}
+{"av_id": "sac_42", "g_id": "acarl_cutin", "c": 4.0, "trial_k": 1, "y": 0, "ep_len": 200, "thw_mean": 4.732619770198415, "ttc_min": 30.85789426822051, "ego_speed": 17.91650624275209}

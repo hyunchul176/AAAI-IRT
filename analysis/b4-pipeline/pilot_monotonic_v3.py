@@ -1,17 +1,22 @@
 # -*- coding: utf-8 -*-
-"""단조성 pilot 3차: AV=3 × G=4 × c 5 × K=10 = 600 cells.
+"""단조성 pilot 3차: AV=3 × G=4 × c 5 × K=20 = 1200 cells.
 
-라운드 14 K=30 재pilot 후속. (sac, lc) c=0(sigma_scale 2.0) 자리에서 26.67%
+라운드 14 K=30 재pilot 후속. (sac, lc) c=0(sigma_scale 2.0) 조건에서 26.67%
 충돌이 통계 검증된 신호임을 확인했고 SEVERITY_MAP['lc']을 가설 2 방향으로
 반전(c=0→0.3, c=4→2.0)했다. pilot 3차는 그 반전 매핑 위에서 (AV, G) 쌍별
-단조성 ρ ≥ 0.7 합격 자리 확인.
+단조성 ρ ≥ 0.7 합격 여부 확인.
+
+라운드 15 재실행: 1차 시도(K=10)는 sac×lc 35셀 완료 후 CARLA UE4가 컨테이너 안에서
+망가져 이후 셀이 전부 load_world 30초 timeout으로 흘러간 흐름. 원인은 셀 사이 CARLA
+메모리 누수. 재실행에서는 (1) K=10→20 통계력 보강, (2) 매 RESTART_EVERY 셀마다
+CARLA를 컨테이너 안에서 안전 재시작해 누수를 끊는다.
 
 설계:
 - AV=3 SafeBench tree (SAC·basic·behavior). PlanT는 FREA tree라 별도 분기.
-  behavior는 라운드 14의 None-safety 패치 적용 자리.
+  behavior는 라운드 14의 None-safety 패치 적용 대상.
 - G=4 SafeBench tree (LC·idm_attack·mobil_attack·ordinary).
-- c 5수준 × K=10.
-- 총 3 × 4 × 5 × 10 = 600 cells, 셀당 ~10초, ETA ~1.7시간.
+- c 5수준 × K=20.
+- 총 3 × 4 × 5 × 20 = 1200 cells, 셀당 ~1분, ETA ~20시간.
 
 usage:
     python3 analysis/b4-pipeline/pilot_monotonic_v3.py --container sb-pilot --dry-run
@@ -35,7 +40,14 @@ from pilot_monotonic_v2 import extract_collision_and_cleanup  # noqa: E402
 EGOS = ["sac", "basic", "behavior"]
 GENERATORS = ["lc", "idm_attack", "mobil_attack", "ordinary"]
 C_LEVELS = [0.0, 1.0, 2.0, 3.0, 4.0]
-K_REPS = 10
+K_REPS = 20
+
+# 라운드 15 2차: CARLA 메모리 누수 끊는 단계. K=20 1차 시도에서 RESTART_EVERY=100은
+# 부족함이 확인됐다 : 누수가 셀 약 80~90 지점에서 발현되어 sac × lc·idm 모두 c=4
+# 후반 구간에서 timeout cascade. 50 셀마다 안전 재시작으로 줄여 발현 전에 끊는다.
+# 1200 셀 / 50 = 24 회 × 18초 = 432초 (7분) 추가 비용.
+RESTART_EVERY = 50
+CARLA_BOOT_WAIT_SEC = 18
 
 # G별 (sid, rid, data_id) 카탈로그. sb-pilot 안 jsonl 기준으로 정렬.
 G_SCENARIO_CFG = {
@@ -84,6 +96,27 @@ def iter_pilot_cells() -> Iterable[PilotCell]:
                         ego=ego, g_id=g, c_value=c, trial_k=k,
                         sid=cfg["sid"], rid=rid, data_id=data_id,
                     )
+
+
+def restart_carla(container: str) -> None:
+    """sb-pilot 컨테이너 안 CarlaUE4를 안전 재시작. SafeBench upstream의 셀 사이
+    메모리 누수 현상에 대응(라운드 15 진단). 죽이고 18초 부팅 대기.
+    """
+    print(f">>> [carla-restart] killing CarlaUE4 in {container}", flush=True)
+    subprocess.run(
+        ["docker", "exec", container, "bash", "-c",
+         "pkill -9 -f CarlaUE4 2>/dev/null; sleep 2; pkill -9 -f Carla 2>/dev/null; sleep 1"],
+        check=False, timeout=30,
+    )
+    subprocess.run(
+        ["docker", "exec", "-d", container, "bash", "-c",
+         "cd /home/safebench/carla && "
+         "./CarlaUE4.sh -RenderOffScreen -nosound -carla-rpc-port=2000 "
+         "> /tmp/carla.log 2>&1"],
+        check=False, timeout=10,
+    )
+    print(f">>> [carla-restart] booting (sleep {CARLA_BOOT_WAIT_SEC}s)", flush=True)
+    time.sleep(CARLA_BOOT_WAIT_SEC)
 
 
 def run_cell(cell: PilotCell, container: str, dry_run: bool, log_dir: Path) -> dict:
@@ -137,6 +170,9 @@ def main() -> None:
     results = []
     t0 = time.time()
     for i, cell in enumerate(cells, 1):
+        # 라운드 15: 매 RESTART_EVERY 셀마다 CARLA 안전 재시작. 1셀은 깨끗한 상태이니 건너뜀.
+        if not args.dry_run and i > 1 and (i - 1) % RESTART_EVERY == 0:
+            restart_carla(args.container)
         print(f"  [{i}/{len(cells)}] {cell.exp_name}", flush=True)
         r = run_cell(cell, args.container, args.dry_run, log_dir)
         if not args.dry_run and r.get("rc") == 0:

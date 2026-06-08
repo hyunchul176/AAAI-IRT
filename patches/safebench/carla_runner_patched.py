@@ -53,7 +53,7 @@ class CarlaRunner:
         # apply settings to carla
         self.client = carla.Client('localhost', scenario_config['port'])
         # AAAI-IRT patch: CARLA UE4가 학습 직후 load_world 호출에 10초 안 응답
-        # 못 하는 자리가 자주 일어남(엔진 재기동 직후 동기화 시간이 더 필요).
+        # 못 하는 현상이 자주 일어남(엔진 재기동 직후 동기화 시간이 더 필요).
         # 30초로 늘려 학습이 timeout으로 죽는 risk를 줄인다.
         self.client.set_timeout(30.0)
         self.world = None

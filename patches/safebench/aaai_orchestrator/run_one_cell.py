@@ -108,8 +108,8 @@ def main() -> int:
         except Exception:
             return
         # log/<exp_name>/<exp_name>_<av>_<g>_seed_<seed>/eval_results/aaai_skip_count.txt
-        # SafeBench log 자리 자체가 셀별로 자동 만들어지므로, 가장 안전한 자리는
-        # SafeBench root 안 임시 자리에 두고 orchestrator가 docker cp로 가져간다.
+        # SafeBench log 경로 자체가 셀별로 자동 만들어지므로, 가장 안전한 방식은
+        # SafeBench root 안 임시 위치에 두고 orchestrator가 docker cp로 가져가는 것이다.
         marker = tree_root / "log" / f"_aaai_skip_{args.exp_name}.txt"
         try:
             marker.parent.mkdir(parents=True, exist_ok=True)

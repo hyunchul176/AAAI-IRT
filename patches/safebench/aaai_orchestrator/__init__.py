@@ -2,7 +2,7 @@
 
 이 패키지는 SafeBench 컨테이너 안에 docker cp되어 한 셀(AV, G, scenario_id,
 route_id, data_id, c, k) 단위로 SafeBench eval을 호출한다. yaml override·
-severity injection을 한 자리에 모아 SafeBench upstream을 건드리지 않는다.
+severity injection을 한 모듈에 모아 SafeBench upstream을 건드리지 않는다.
 
 구성:
 - yaml_override: 셀별 scenario yaml을 tmp 파일로 만들어 scenario_id·route_id를

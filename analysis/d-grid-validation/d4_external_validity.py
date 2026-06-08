@@ -4,12 +4,12 @@
 섹션 C의 외부 난이도 지표(Wagner TTR, Yu complexity, Tulpule value function,
 Kurian R_p)와 우리 추정 시나리오 난이도 b̂(시나리오별 평균)의 Spearman ρ를
 보고. expert reference policy의 충돌률 분포도 자릿수 일치로 비교(검토자 라운드
-10·11이 짚은 자리: 척도 일치 scale linking은 시도하지 않고 rank correlation
+10·11이 짚은 단계: 척도 일치 scale linking은 시도하지 않고 rank correlation
 sanity check 수준).
 
 외부 지표는 CSV로 받는다. 헤더: scenario_id,route_id,data_id,wagner_ttr,
 yu_complexity,tulpule_value,kurian_rp,expert_collision_rate. 일부 열은 비워도
-되며 비어 있는 자리는 NaN으로 처리.
+되며 비어 있는 항목은 NaN으로 처리.
 
 usage:
     python3 analysis/d-grid-validation/d4_external_validity.py \\
@@ -58,7 +58,7 @@ def run_d4(resp: dict, external: dict | None = None, seed: int = 0) -> dict:
     있으면 Spearman ρ + scatter pair. 없으면 b̂ 분포 통계만.
     """
     f = fit_map(resp, fix_u=None, use_prior=True, seed=seed)
-    # b는 (G, sev) 매트릭스. G별 평균 difficulty를 G 자리에 대응시킨다.
+    # b는 (G, sev) 매트릭스. G별 평균 difficulty를 G 인덱스에 대응시킨다.
     b_mat = compute_b_per_scenario(resp, f)
     b_per_g = b_mat.mean(axis=1)  # G별 평균
     out = dict(

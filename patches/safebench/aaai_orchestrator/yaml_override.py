@@ -42,7 +42,7 @@ def make_cell_scenario_yaml(
     그 파일명을 돌려준다. scripts/run.py에 --scenario_cfg로 넘기는 값(파일명만)이
     그대로 돼야 하므로 SafeBench config 디렉토리 안에 두는 것이 가장 깔끔하다.
 
-    `data_id` 필드는 SafeBench upstream의 `scenario_utils.py`에는 filter 자리가
+    `data_id` 필드는 SafeBench upstream의 `scenario_utils.py`에는 filter 처리가
     없어 별도 패치(`patches/safebench/scenario_utils_patched.py`)가 그것을 읽도록
     한 줄 추가했다. 두 패치는 같이 적용되어야 한다.
 

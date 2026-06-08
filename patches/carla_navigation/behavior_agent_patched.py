@@ -289,9 +289,9 @@ class BehaviorAgent(BasicAgent):
 
         # 3: Intersection behavior
         # AAAI-IRT patch (라운드 13): _incoming_waypoint가 None이면(시나리오 초기
-        # 자리에서 자주 일어남) 그 자리를 graceful skip해 normal behavior로 떨어진다.
-        # SafeBench 단조성 pilot에서 behavior ego 100 cells 중 67이 이 자리 AttributeError로
-        # 실패했던 자리.
+        # 단계에서 자주 일어남) 그 시점을 graceful skip해 normal behavior로 떨어진다.
+        # SafeBench 단조성 pilot에서 behavior ego 100 cells 중 67이 이 지점 AttributeError로
+        # 실패했던 사례.
         elif self._incoming_waypoint is not None and self._incoming_waypoint.is_junction and (self._incoming_direction in [RoadOption.LEFT, RoadOption.RIGHT]):
             target_speed = min([
                 self._behavior.max_speed,

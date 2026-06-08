@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """MOBIL 기반 단순화 적대 시나리오 정책.
 
-plan §4의 "IDM/MOBIL 기반" 표준 단순 생성기 권고에서 MOBIL 자리. CARLA의
+plan §4의 "IDM/MOBIL 기반" 표준 단순 생성기 권고에서 MOBIL에 해당. CARLA의
 BehaviorAgent가 cautious·normal·aggressive 세 단계의 behavior_type을 가지며
 각 단계는 max_speed·safety_time·min_proximity_threshold·braking_distance 등
 7개 변수에서 단조 변화한다(behavior_types.py 확인).
@@ -13,8 +13,8 @@ behavior_type 단계 max_speed 분포만 c 다이얼에 매핑해 IDMAttackPolic
 c→speed 곡선을 만든다(IDM 0~50 m/s 폭, MOBIL 11~19 m/s 폭).
 
 학술적 차이는 두 정책이 같은 인터페이스(target_speed) 위에 다른 c 곡선을
-얹은 자리라 정책 family로 정직하게 다른 자리는 아니지만, c=0 부드러운 진입과
-c=4 빠른 진입의 폭 자체가 다른 두 G로 split-half 검정 자리를 의미 있게 만든다.
+얹은 구현이라 정책 family로 정직하게 다른 형태는 아니지만, c=0 부드러운 진입과
+c=4 빠른 진입의 폭 자체가 다른 두 G로 split-half 검정 항목을 의미 있게 만든다.
 본문 한계: BehaviorAgent attach 본격 구현은 향후 검증.
 """
 from __future__ import annotations

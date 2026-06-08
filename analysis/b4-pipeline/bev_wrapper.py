@@ -19,7 +19,7 @@ SafeBench는 이미 pygame 기반 BEV 렌더러를 갖고 있다:
     'off'             : BEV 저장 끔
 
 저장은 rollout 끝에 한 번만 호출해 시드·시간·환경 결정의 셀 timeout을 BEV I/O가 깎지 않게
-한다. SafeBench VideoRecorder.save가 default `num_scenario=2` 묶음 단위라
+한다. SafeBench VideoRecorder.save가 default `num_scenario=2` 단위로 저장하므로
 `num_scenario=1`로 강제하거나 data_ids별 frame_list 분리가 필요하다(헤드리스·BEV 결정).
 
 헤드리스 운용: SafeBench README가 요구하는 대로

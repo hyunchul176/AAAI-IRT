@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""BehaviorAgent attach 자리. adv_behavior_single.NoSignalJunctionCrossingRoute에서
-update_behavior가 target_speed로 go_straight 호출하던 자리를 BehaviorAgent.run_step()
+"""BehaviorAgent attach 구현. adv_behavior_single.NoSignalJunctionCrossingRoute에서
+update_behavior가 target_speed로 go_straight 호출하던 부분을 BehaviorAgent.run_step()
 호출로 바꿈.
 
 c 다이얼은 scenario_action[0]을 [0, 1, 2] 정수 인덱스로 받아 behavior_type을
@@ -74,13 +74,13 @@ class NoSignalJunctionCrossingRouteAttach(BasicScenario):
         # BehaviorAgent attach (시작은 normal, update_behavior에서 c별로 갈아끼움)
         if self.other_actors[0] is not None:
             self.bg_agent = BehaviorAgent(self.other_actors[0], behavior="normal")
-            # ego 진입 자리를 destination으로 한 번만 설정. ego가 그 자리를 통과하면
-            # background actor는 path planner 안 fall-back으로 마지막 자리 향함.
+            # ego 진입 위치를 destination으로 한 번만 설정. ego가 그 위치를 통과하면
+            # background actor는 path planner 안 fall-back으로 마지막 지점 향함.
             ego_loc = self.ego_vehicle.get_location()
             try:
                 self.bg_agent.set_destination(ego_loc)
             except Exception:
-                # CARLA 0.9.13 BehaviorAgent.set_destination 인자 차이 자리 안전
+                # CARLA 0.9.13 BehaviorAgent.set_destination 인자 차이 흠 안전
                 pass
 
     def create_behavior(self, scenario_init_action):
@@ -94,7 +94,7 @@ class NoSignalJunctionCrossingRouteAttach(BasicScenario):
         lvl = self.convert_actions(scenario_action)
         # behavior_type 단계 변경: BehaviorAgent._behavior를 새 객체로 갈아끼움.
         # behavior_types.Cautious/Normal/Aggressive는 max_speed·min_proximity·
-        # braking_distance 등 7개 변수가 단조 변하는 자리.
+        # braking_distance 등 7개 변수가 단조 변하는 단계.
         _, behavior_cls = _BEHAVIOR_BY_LEVEL[lvl]
         self.bg_agent._behavior = behavior_cls()
         # run_step이 throttle·steer·brake control을 만든다.
@@ -102,8 +102,8 @@ class NoSignalJunctionCrossingRouteAttach(BasicScenario):
             control = self.bg_agent.run_step()
             self.other_actors[0].apply_control(control)
         except Exception:
-            # BehaviorAgent run_step의 자리 변동 (예: _incoming_waypoint=None)은
-            # CARLA upstream 자리 한계라 graceful skip + 그 step은 no-control.
+            # BehaviorAgent run_step의 내부 변동 (예: _incoming_waypoint=None)은
+            # CARLA upstream 한계라 graceful skip + 그 step은 no-control.
             pass
 
     def check_stop_condition(self):

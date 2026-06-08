@@ -35,6 +35,17 @@ analysis/b4-pipeline/pilot_recheck.log
 analysis/b4-pipeline/train_serial.log
 analysis/b4-pipeline/train_agents_serial.log
 analysis/b4-pipeline/pilot_mono_v2_logs/
+analysis/b4-pipeline/pilot_mono_v2_logs_v1/
+analysis/b4-pipeline/pilot_mono_v2_logs_v2_fail/
+analysis/b4-pipeline/pilot_mono_v3_logs_k10_partial/
+analysis/b4-pipeline/pilot_mono_v3_logs_k20_restart100_partial/
+
+# External manuscripts (not part of submission, kept locally)
+ACARL Manuscript*.docx
+
+# Local user skills (not part of project)
+academic-writing-kr.skill
+academic-writing-kr/
 
 # Python cache / build
 __pycache__/

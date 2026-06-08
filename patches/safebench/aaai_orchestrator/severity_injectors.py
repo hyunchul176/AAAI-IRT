@@ -5,7 +5,7 @@
 들어간다(LC는 sample sigma, NF는 flow_sample sigma, AdvSim·AdvTraj는 parameters
 인덱스, ordinary는 무관). 단조성을 만족하는 c → hyperparam 매핑 자체는 단조성
 pilot이 답해야 하므로(생성기·severity 결정의 본문에서 ρ ≥ 0.7 합격선) 이 파일은
-인터페이스와 hook 자리만 잡고 실제 매핑 값은 SEVERITY_MAP에 표로 둔다.
+인터페이스와 hook 부분만 잡고 실제 매핑 값은 SEVERITY_MAP에 표로 둔다.
 
 사용:
     from aaai_orchestrator.severity_injectors import apply_severity
@@ -29,9 +29,9 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
     # IDMAttackPolicy의 c 다이얼 (라운드 14 정정: 범위 확장).
     # adv_behavior_single.update_behavior의 convert_actions는 `speed = action[0]*5 + 5`로
     # 변환한다. action[0] 범위를 더 넓혀 background actor target_speed가 더 공격적인
-    # 자리까지 펼쳐지도록 한다. pilot v2 (sac, idm_attack)에서 target_speed 5~25 m/s가
+    # 구간까지 펼쳐지도록 한다. pilot v2 (sac, idm_attack)에서 target_speed 5~25 m/s가
     # SAC ego·시나리오 8에 너무 약했다는 진단(라운드 13)에 따라 c=0→-1.0(0 m/s 정지),
-    # c=4→9.0(50 m/s 고속) 자리로 폭을 두 배 키운다. 명시 변수 자리에 다이얼을 직접
+    # c=4→9.0(50 m/s 고속) 위치로 폭을 두 배 키운다. 명시 변수에 다이얼을 직접
     # 거는 길은 plan §4·§13 정합(검토자 라운드 14).
     "idm_attack": {
         0.0: {"action_value": -1.0},  # → speed = 0  m/s (정지)
@@ -67,11 +67,11 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
     },
     # LC(REINFORCE init-state policy)의 c 다이얼. 라운드 14 검토 + K=30 재pilot
     # 결과(2026-06-04)로 가설 2(σ 큼 → mu 분포 tail의 다양·극단 공격 위치
-    # sample → 공격력 증가)가 검증됨. (sac, lc) sigma_scale=2.0(옛 c=0) 자리에서
+    # sample → 공격력 증가)가 검증됨. (sac, lc) sigma_scale=2.0(옛 c=0) 조건에서
     # 30 cells 충돌률 26.67%, Wilson 95% CI [0.142, 0.444], random(p=0.05)과
     # FREA Table 2(p=0.10) 둘 다 통계적으로 다름. 따라서 라벨을 반전해
     # c=0→sigma_scale 0.3(거의 결정적, mu 그대로), c=4→sigma_scale 2.0(검증된
-    # 공격 자리)으로 매핑하면 단조 곡선이 자연.
+    # 공격 위치)으로 매핑하면 단조 곡선이 자연.
     "lc": {
         0.0: {"sigma_scale": 0.3},
         1.0: {"sigma_scale": 0.7},
@@ -94,7 +94,7 @@ SEVERITY_MAP: dict[str, dict[float, dict[str, float]]] = {
     "ordinary": {0.0: {}},   # severity 무관, c=0만 인정
     # FREA fppo_adv는 학습 progress step 자체가 severity 다이얼이다. CBV_ckpt의
     # `model.fppo_adv.cbv.<episode>.torch` 파일 episode 인덱스를 c에 매핑한다.
-    # 후보 5수준은 단조성 pilot이 합격 판정할 자리(생성기·severity 결정의
+    # 후보 5수준은 단조성 pilot이 합격 판정할 항목(생성기·severity 결정의
     # Spearman ρ ≥ 0.7).
     "fppo_adv": {
         0.0: {"episode":   50},
@@ -142,7 +142,7 @@ def _patch_nf(c_value: float) -> None:
     SafeBench eval 흐름에서 NF는 `flow_sample`이 아니라 `get_init_action`을
     호출한다 (normalizing_flow_policy.py:221). 그 안 `mean = zeros(action_dim)`
     +`action = self.model.inverse(mean, condition)`. z=0이면 학습된 mode를
-    그대로 받고, z를 N(0, σ²I)에서 sample하면 latent space의 다른 자리에서
+    그대로 받고, z를 N(0, σ²I)에서 sample하면 latent space의 다른 위치에서
     flow 역방향 결과를 받는다. σ가 곧 c 다이얼이다.
 
     가설 1 (검토자 라운드 10 정합): σ 키우면 latent tail에서 mode 밖 sample →
@@ -160,17 +160,17 @@ def _patch_nf(c_value: float) -> None:
     from safebench.util.torch_util import CUDA
 
     # 셀당 trial_k 카운터(같은 process 안 호출 순서 = trial_k). SafeBench가
-    # data_loader를 한 자리만 남기도록 yaml override하면 한 process = 한 셀이
+    # data_loader를 한 항목만 남기도록 yaml override하면 한 process = 한 셀이
     # 되고, K 반복은 별도 process로 호출되어 _call_idx는 항상 0이 된다.
-    # 두 자리 모두 결정성 강제.
+    # 두 경로 모두 결정성 강제.
     _aaai_call_idx = [0]
 
     def patched_get_init_action(self, state, infos, deterministic=False):
         # AAAI-IRT patch (라운드 12): 같은 (sid, rid, data_id, seed) 셀이 매
         # 호출 다른 z를 받지 않도록 manual_seed로 결정성 강제. trial_k는
-        # severity_injectors가 알 자리가 없으므로 (cell seed + call index)
+        # severity_injectors가 알 방법이 없으므로 (cell seed + call index)
         # 조합으로 결정성 확보. SafeBench process 외부에서 trial_k별 새 seed로
-        # 호출되는 자리(한 셀 한 process)에서는 _call_idx가 항상 0.
+        # 호출되는 흐름(한 셀 한 process)에서는 _call_idx가 항상 0.
         seed = int(torch.initial_seed()) & 0xFFFFFFFF
         torch.manual_seed(seed + _aaai_call_idx[0] * 7919)
         _aaai_call_idx[0] += 1

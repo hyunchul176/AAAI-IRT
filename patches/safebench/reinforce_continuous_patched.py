@@ -256,7 +256,7 @@ class REINFORCE(BasePolicy):
 
     def load_model(self, scenario_configs=None):
         # AAAI-IRT patch: train_scenario 흐름이 carla_runner의
-        # check_continue_training에서 인자 없이 호출하는 자리가 있어,
+        # check_continue_training에서 인자 없이 호출하는 경로가 있어,
         # scenario_configs가 None이면 graceful skip(처음부터 학습 시작)으로
         # 둔다. eval 흐름에서는 항상 scenario_configs가 제공되므로 영향 없음.
         if scenario_configs is None:

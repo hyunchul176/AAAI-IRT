@@ -1,5 +1,7 @@
 # HANDOFF · 새 기계(RTX 4080 리눅스)에서 이어가기
 
+> **시점 표시 (2026-06-07 라운드 19 추가)**: 본 HANDOFF는 2026-06-02 라운드 1 이전 시점의 자료다. 현재 본 프로젝트는 라운드 19까지 진행되어 응시자 N=20·격자 자료가 갱신된 상태이며, **최신 상태는 `paper_data.md` §5·`decisions.html` 라운드 19 단락·`SESSION_START_PROMPT.md`(라운드 19 자료 반영) 기준**이다. 새 환경 이전 시 본 HANDOFF가 아닌 `SESSION_START_PROMPT.md`를 첫 대화에 활용한다.
+>
 > 작성: 2026-06-02, Windows 노트북 세션 종료 시점.
 > 새 기계에서 이 프로젝트 폴더로 이동해 Claude Code를 켜고 첫 메시지로
 > **"HANDOFF.md와 research/roadmap.html 읽고 이어서 진행하자"** 라고 하면 된다.
@@ -52,18 +54,24 @@ P(충돌) = u(G,c) + (1−u)·σ(a_G(β_G + γ_G·c − θ_π)), θ~N(0,1).
   최악은 u=0 무시(현행 관행): θ* +43%, b* 4.2배. **방침: RSS를 사전 중심으로 한 soft 라벨링이 기본값**,
   LFR·over-critical 대안 중심 민감도 분석 + u=0 비교 보고.
 
-**B1 시뮬레이터: CARLA (SafeBench + FREA 스택) 단독 확정.**
-MetaDrive 보조 격자 안은 검토 후 채택하지 않음(논의·근거: research/decisions.html 시뮬레이터 선택 결정).
-SafeBench(NeurIPS 2022, CARLA **0.9.13 권장**, 도커)가 적대 생성 4종 + RL ego 에이전트 제공,
-FREA(CoRL 2024 Oral, github.com/CurryChen77/FREA)는 **SafeBench 포크**로
-반응형 CBV + LFR 네트워크 구현 (LFR = soft 라벨 대안 중심값). RSS 라벨은 Khan 2026의 CARLA 전례.
-유의: headless·도커 병렬, 버전은 SafeBench·FREA 권장 0.9.13.
-사용자 호스트는 CARLA 0.9.16 native(~/carla_0916/)가 있으나 SafeBench와 3 minor 격차라
-0.9.13을 도커로 별도 띄우는 것이 안전(SafeBench docker/run_docker.sh 제공).
-합성 트랙(A·D-study 코드)과 2단 구성, 완전한 결정론 기대하지 않음(반복 변동은 반응성의 일부).
+**B1 시뮬레이터: highway-env + ACARL 인프라 (2026-06-04 라운드 16 갱신, 2026-06-06 라운드 17 재확인).**
+옛 결정(라운드 1~15)에서는 CARLA(SafeBench + FREA 스택, 0.9.13 도커)를 채택하였으나
+라운드 16에서 SafeBench 적대 생성기 셋의 단조성 검정 미통과·BasicAgent/BehaviorAgent의
+정책 가족 중복·CARLA upstream 패치 fall-through 한계가 누적되어 본 격자 환경을
+highway-env(1.10.2) + ACARL 인프라(`<anonymized-acarl-repo>`)로 이전하였다.
+라운드 17에서 시뮬레이터 충실도 강화를 위해 ACARL Phase 1을 CARLA Town04에서 재학습하여
+G 차원을 옮기는 재시도(v1·v2·v3)가 모두 fast crash로 수렴하여 종결되었으며,
+본 진단(CARLA의 3D physics·관성이 RL 정책의 환경 우회를 가능케 함)으로
+본문 핵심을 highway-env에 그대로 유지한다. 환경 운용 명세: ACARL repository의
+`AdversarialNPCEvalEnv`(`src/environments/npc_adapter.py`)와
+`evaluate_av_downstream.py`의 응시자 인터페이스(IDM·MOBIL·Defensive RL 세 종 지원).
+응답 jsonl 산출 스크립트는 `analysis/highway_grid/run_aaai_grid.py`.
+사용자 호스트의 CARLA 0.9.16 native(~/carla_0916/)는 라운드 17 재학습 시도에 사용된 후
+ACARL repository 코드와 함께 future work의 출발점으로 보존된다. 결정 이력 전체는
+`research/decisions.html` #d06·#d07의 라운드 16·17 단락에 박혀 있다.
 
 **실행 결정 트레일: research/decisions.html에 정식 기록 (동결).**
-시뮬레이터 선택 (CARLA + SafeBench + FREA 단독) · 결정 트레일 보관 위치 · 격자 합격선 ·
+시뮬레이터 선택 (highway-env + ACARL 인프라, 라운드 16·17 갱신) · 결정 트레일 보관 위치 · 격자 합격선 ·
 표본불변성 검증 절차 (split-half) · 격자 후보 범위와 severity 배치 ·
 평가 대상 AV 선정(SafeBench RL 4종 + 규칙 기반 2종 + PlanT 2종) ·
 시나리오 생성기와 severity 조절 · 응답표 변환과 RSS 라벨링 ·
@@ -96,10 +104,10 @@ rss_labeler.py (RSS Shalev-Shwartz 2017 §3 종/횡 안전거리 + 대안 중심
 함수 본문은 NotImplementedError, B 단계 첫 작업에서 채움.
 
 **사이트 구조 (GitHub Pages 임시 public + robots.txt 검색 차단)**:
-URL <https://hyunchul176.github.io/AAAI-IRT/> → plan.html이 메인.
+URL `<https://[anonymized].github.io/AAAI-IRT/>` → plan.html이 메인.
 공개 6 페이지: plan(메인) · lit-review · roadmap · method · d-study 결과 · 정독 카드(review/).
 로컬만(`.gitignore`): research/decisions.html · research/questions-log.html · research/index.html.
-GitHub Education 승인되면 `gh api -X PATCH repos/hyunchul176/AAAI-IRT -f visibility=private`로
+GitHub Education 승인되면 `gh api -X PATCH repos/<anonymized>/AAAI-IRT -f visibility=private`로
 private 전환 + Pro plan에서 private Pages 호스팅.
 
 ## 다음 할 일
@@ -127,11 +135,11 @@ private 전환 + Pro plan에서 private Pages 호스팅.
 
 ## 작업 규칙 (CLAUDE.md가 원본, 자주 틀리는 것만 재강조)
 
-- **voice**: 흐르는 산문, 통계 용어는 처음에 쉬운 말로, 시험 비유 일관 사용. em-dash(—) 금지.
+- **voice**: 흐르는 산문, 통계 용어는 처음에 쉬운 말로, 시험 비유 일관 사용. em-dash(U+2014) 금지.
 - **금지어**(누적): 부품, 묶음, 척추, 사다리, 축, 무게중심, 주축, 토대, 바닥(→하한), 손잡이(→조절 변수),
   자백/자인, 선구자, 잰다(→측정한다), 배지·진행상태 라벨, "정독"을 상태 표현으로 쓰기.
   **HTML 수정 후 매번 grep으로 검증하는 습관**:
-  `grep -cE "부품|묶음|척추|사다리|무게중심|주축|토대|바닥|손잡이|자백|자인|선구자|잰다|정독" <파일>` 과 `grep -c "—" <파일>`.
+  `grep -cE "부품|묶음|척추|사다리|무게중심|주축|토대|바닥|손잡이|자백|자인|선구자|잰다|정독" <파일>` 과 `grep -cP "\x{2014}" <파일>` (em-dash 검출은 U+2014 코드포인트 패턴으로 수행).
 - **정독 카드**: `_handoff/skills/deep-review-card/` 스킬 절차를 따른다(6파트, 파트별 mark 1개,
   인용은 본문만, figure는 PDF 렌더 → 진단 크롭으로 잉크 경계 측정 → trim + 균일 테두리 → Read로 확인).
 - **사실성**: 인용·수치 지어내지 않기, 미확인은 "확인 필요". 특정 논문은 full PDF로 검증.
@@ -163,7 +171,7 @@ private 전환 + Pro plan에서 private Pages 호스팅.
 
 1. `_handoff/skills/deep-review-card/` → `~/.claude/skills/deep-review-card/` ✓ 복사 완료.
 2. `_handoff/memory/` 4개 파일(MEMORY.md 인덱스 + aaai-sut-research + writing-style-corrections + decisions-log)
-   → `~/.claude/projects/-home-hyunchul-AAAI/memory/` ✓ 복사 완료.
+   → `~/.claude/projects/<anonymized-project-path>/memory/` ✓ 복사 완료.
 3. **API 키** ✓ `~/.config/research_keys.env` (chmod 600)에 ELSEVIER_API_KEY·WILEY_TDM_TOKEN 등록.
    주의: 키는 이번 이관 과정에서 평문 노출되었으므로 Elsevier·Wiley 포털에서 재발급 권장.
 4. `_handoff/transcripts/` 는 그대로 둠. 과거 맥락이 궁금할 때 grep으로 읽으면 됨.
