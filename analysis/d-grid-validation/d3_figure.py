@@ -83,7 +83,7 @@ def variant_df(variant: str, n_av: int, n_g: int, n_sev: int) -> int:
     if variant == "no_severity":
         return n_g  # γ_G 항을 0 고정
     if variant == "g_common":
-        return 3 * (n_g - 1)  # β·γ·a 각 G별 → 한 값
+        return 4 * (n_g - 1)  # β·γ·a·u 각 G별 → 한 값 (df=12, u 포함)
     if variant == "u_zero":
         return n_g  # u_G 0 고정
     return 0
