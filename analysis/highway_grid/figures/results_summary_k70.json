@@ -1,0 +1,159 @@
+{
+  "jsonl": "analysis/highway_grid/responses_av20_k70.jsonl",
+  "n_av": 20,
+  "n_g": 4,
+  "n_sev": 5,
+  "K": 70,
+  "n_total_episode": 28000,
+  "d1_monotonicity": {
+    "acarl_cutin": {
+      "rho_all20": 0.9,
+      "p_all20": 0.0374,
+      "rho_informative": 0.9,
+      "p_informative": 0.0374,
+      "excluded": [
+        "ppo_500"
+      ],
+      "n_kept": 19,
+      "pass_all20": true,
+      "pass_informative": true,
+      "avg_all20_per_c": [
+        0.08,
+        0.0943,
+        0.0886,
+        0.1043,
+        0.1421
+      ],
+      "avg_informative_per_c": [
+        0.0842,
+        0.0992,
+        0.0932,
+        0.1098,
+        0.1496
+      ]
+    },
+    "acarl_rearend": {
+      "rho_all20": 0.6669,
+      "p_all20": 0.2189,
+      "rho_informative": 0.7,
+      "p_informative": 0.1881,
+      "excluded": [
+        "mobil",
+        "ppo_100",
+        "ppo_800"
+      ],
+      "n_kept": 17,
+      "pass_all20": false,
+      "pass_informative": true,
+      "avg_all20_per_c": [
+        0.085,
+        0.085,
+        0.0757,
+        0.1071,
+        0.135
+      ],
+      "avg_informative_per_c": [
+        0.1,
+        0.1,
+        0.0891,
+        0.1261,
+        0.1588
+      ]
+    },
+    "method_b": {
+      "rho_all20": 0.0,
+      "p_all20": 1.0,
+      "rho_informative": 0.0,
+      "p_informative": 1.0,
+      "excluded": [
+        "ppo_200"
+      ],
+      "n_kept": 19,
+      "pass_all20": false,
+      "pass_informative": false,
+      "avg_all20_per_c": [
+        0.4921,
+        0.495,
+        0.5071,
+        0.5143,
+        0.4686
+      ],
+      "avg_informative_per_c": [
+        0.518,
+        0.5211,
+        0.5338,
+        0.5414,
+        0.4932
+      ]
+    },
+    "method_c": {
+      "rho_all20": 0.9,
+      "p_all20": 0.0374,
+      "rho_informative": 0.9,
+      "p_informative": 0.0374,
+      "excluded": [
+        "ppo_200",
+        "ppo_800"
+      ],
+      "n_kept": 18,
+      "pass_all20": true,
+      "pass_informative": true,
+      "avg_all20_per_c": [
+        0.2829,
+        0.2764,
+        0.285,
+        0.2914,
+        0.32
+      ],
+      "avg_informative_per_c": [
+        0.3143,
+        0.3071,
+        0.3167,
+        0.3238,
+        0.3556
+      ]
+    }
+  },
+  "d1_rank_reversal": {
+    "mean_rho": 0.9887,
+    "p25_rho": 0.9851,
+    "min_rho": 0.9729,
+    "tophalf_disagreement_mean": 0.0,
+    "tophalf_disagreement_p25": 0.0,
+    "n_splits": 50
+  },
+  "d2_trial_split": {
+    "r_mean_all4G": 0.995,
+    "p25_all4G": 0.994,
+    "r_mean_pass3G": 0.987,
+    "p25_pass3G": 0.985,
+    "pass_G": [
+      "acarl_cutin",
+      "acarl_rearend",
+      "method_c"
+    ],
+    "n_splits": 50,
+    "figure": "analysis/highway_grid/figures/d2_trial_split_k70.{pdf,png}"
+  },
+  "d3_ablation": {
+    "no_severity": {
+      "deviance_delta": 289790.7,
+      "df": 4,
+      "converged": true
+    },
+    "g_common": {
+      "deviance_delta": 5472.28,
+      "df": 12,
+      "converged": true
+    },
+    "u_zero": {
+      "deviance_delta": 165.8,
+      "df": 4,
+      "converged": true
+    },
+    "seed": 0,
+    "figure": "analysis/highway_grid/figures/d3_ablation_k70.{pdf,png}"
+  },
+  "fit_irt_main_path": "analysis/highway_grid/figures/irt_main_k70.json",
+  "note": "본 수치가 기존 N=20·K=20(irt_main_av20) 및 N=18·K=70(irt_main_av18) 두 fit 자료를 대체."
+}
