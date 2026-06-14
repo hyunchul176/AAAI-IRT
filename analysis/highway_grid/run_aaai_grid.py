@@ -245,17 +245,23 @@ def _swap_ego_to_idm_vehicle(env) -> None:
     inner.vehicle = new_ego
 
 
-def _load_av_models() -> dict:
+def _load_av_models(av_filter: list | None = None) -> dict:
     """Defensive RL 응시자 ckpt 로드. IDM·MOBIL은 모델이 없으므로 None.
 
     알고리즘별 분기 추가 (2026-06-07 라운드 19): PPO·SAC·TD3 분기로
     N=20 응시자 확장에 필요한 자료. av_def["algorithm"] 자료가 없으면
     기존 PPO로 로드 (기존 def_rl_42·123·456·789·1024 호환).
+
+    av_filter 정정 (2026-06-14 라운드 24): --av 부분집합 호출 시 본 부분집합
+    응시자 ckpt만 로드. 본 정정 전에는 모든 22개 응시자 ckpt를 사전 로드해
+    --av idm mobil 호출에서도 학습 ckpt 자료 부재·numpy 버전 어긋남에 깨졌다.
     """
     from stable_baselines3 import PPO, SAC, TD3  # noqa: WPS433
     ALGO_MAP = {"PPO": PPO, "SAC": SAC, "TD3": TD3}
     av_models: dict = {}
     for av_id, av_def in AV_DEFINITIONS.items():
+        if av_filter is not None and av_id not in av_filter:
+            continue
         path = av_def["model_path"]
         if path is None:
             av_models[av_id] = None
@@ -365,7 +371,7 @@ def run_one_episode(av_id: str, g_id: str, c_idx: int, trial_k: int,
 def run_grid(K: int, out_path: Path,
              av_filter: list | None = None,
              g_filter: list | None = None) -> None:
-    av_models = _load_av_models()
+    av_models = _load_av_models(av_filter=av_filter)
 
     av_ids = [a for a in AV_DEFINITIONS if (av_filter is None or a in av_filter)]
     g_ids = [g for g in GEN_DEFINITIONS if (g_filter is None or g in g_filter)]
